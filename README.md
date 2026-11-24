@@ -1,5 +1,8 @@
 # rigorous-research-report
 
+![CI](https://github.com/nscNotFound0415/rigorous-research-report/actions/workflows/ci.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **严谨复杂调研报告写作流水线** — 一套给 AI agent 读的调研报告写作行为协议。
 
 不是散文操作手册，是**可判定、可执行、可机检**的规则集：每条规则要么能被脚本验证，要么能被人类一眼判真伪。
@@ -95,9 +98,10 @@ bash tests/e2e/run_e2e.sh         # 55 项端到端断言（门禁矩阵 + 离�
 
 - **图不渲染**：流水线产出「图题＋数据表」，没有位图插图渲染器。
 - **无在线平台接入**：在线文档已抽象为「在线载体约定」（`source_of_truth` 双分支），默认本地为母本；接具体平台需另写 Adapter。
+- **PDF 文本层依赖系统 CJK 字体**：缺中文字体时 soffice 渲染出的 PDF 文本层不含中文字形，目录页码无法定位（脚本会明确报 `pdf_text_layer_lost_cjk` 并提示安装字体，**不会写入猜测页码**）。
 - **桩件与真人签署在文件层面无法区分**（固有极限）：已用「桩件一律拒绝」把流程约束升级为机器硬拦截，剩余防线是人审流程。
 - **E2E-b（真人全程签署一次）** 需要人执行，运行手册见 `tests/e2e/E2E_B_RUNBOOK.md`。
-- CI 覆盖 Python 3.12–3.14；本地验证仅在 3.14 完成。
+- CI 覆盖 Python 3.12–3.14（GitHub Actions 已验证通过）；本地开发环境为 3.14。
 
 ## 设计来源
 
