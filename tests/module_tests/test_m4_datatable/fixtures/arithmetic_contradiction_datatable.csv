@@ -1,0 +1,5 @@
+item_id,label,value,unit,source_type,source_ref,expected_expression,tolerance,caliber,assumption_tag
+ITM_A01,样例法域自建云节点年总收入,8.04,USD_M,measured,EVID-001,,0.01,A,
+ITM_A02,样例法域自建云节点年总成本,5.32,USD_M,measured,EVID-002,,0.01,A,
+ITM_A03,自建毛利润,2.72,USD_M,derived,EVID-006,ITM_A01 - ITM_A02,0.01,A,
+ITM_MARGIN_CONFLICT,毛利率指标(分母混用与倒挂),-47.0,PERCENT,derived,EVID-006,(ITM_A01 - ITM_A02) / ITM_A01 * 100,0.01,A,

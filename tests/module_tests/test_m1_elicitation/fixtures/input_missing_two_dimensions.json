@@ -1,0 +1,15 @@
+{
+  "subject_name": "中国算力与大模型企业出海样例法域建设云节点可行性调研",
+  "scope_boundaries": "聚焦样例市与样例港两地 IDC 建设、合规牌照与用电成本，排除样例邻域与其他样例区域地区",
+  "context_summary": "某中资云厂商探索在样例区域落地首个自建可用区，需全面研判 SCA 牌照与 样例数据保护法 跨境数据要求",
+  "inherited_materials": ["2025_sample_pilot_memo.pdf", "sca_cloud_framework_v3.pdf"],
+  "primary_readers": ["公司出海战略委员会", "CEO", "首席财务官"],
+  "reader_preferences": "关注投资回收期、电力 PUE 成本、数据主权罚则红线",
+  "style_mode": "rigorous_analytical",
+  "perspective": "third_party_neutral",
+  "online_enabled": false,
+  "source_of_truth": "LOCAL_GIT_FIRST",
+  "sync_policy": "纯本地管理，不启用在线协同同步",
+  "interaction_mode": "minimal_interruption",
+  "interruption_threshold": "仅 G 级门禁与定性裁决主动中断，其余自主闭环推进"
+}

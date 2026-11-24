@@ -1,0 +1,96 @@
+{
+  "$schema": "./schemas/task.schema.json",
+  "project_id": "SAMPLE-AI-CLOUD-2026",
+  "version": "1.0.0",
+  "tasks": [
+    {
+      "task_id": "T-01",
+      "sub_topic": "样例法域样例市数据中心自建与租用机柜成本核算",
+      "perspective": "云计算基础设施架构师 (Cloud Infrastructure Architect)",
+      "target_req_ids": [
+        "REQ-01"
+      ],
+      "guidelines": [
+        "来源出处必须采信样例通信管理局 (SCA) 官方白皮书或样例电信运营商 (scl/样例移动) 公开机柜服务报价单，禁止引用二手商业博客转述",
+        "取价日与基准时间必须严格锁定在 2026 年 Q1（不得采用 2024 年底前历史报价）",
+        "统计口径与单位必须明确区分单机柜月度租金（USD/机柜/月，含电力与制冷 SLA）及工业电价（XDS/kWh）"
+      ],
+      "output_path": "fact-store/T-01_idc_cost_evidence.json",
+      "dependencies": [],
+      "data_requirements": [
+        {
+          "metric_name": "样例法域样例市主流 IDC 单机柜月租成本",
+          "source_type": "quoted",
+          "assumption_tag": null,
+          "unit": "USD/机柜/月",
+          "benchmark_date": "2026-03"
+        },
+        {
+          "metric_name": "样例法域数据中心 PUE 能效比估算值",
+          "source_type": "estimated",
+          "assumption_tag": "ASSUMP_RIYADH_PUE_1_35",
+          "unit": "无量纲比值",
+          "benchmark_date": "2026-03"
+        }
+      ]
+    },
+    {
+      "task_id": "T-02",
+      "sub_topic": "样例法域 SCA 云计算外资牌照与 SDO 跨境数据监管壁垒审计",
+      "perspective": "样例区域跨境数据主权合规律师 (Cross-border Data Compliance Attorney)",
+      "target_req_ids": [
+        "REQ-02"
+      ],
+      "guidelines": [
+        "来源出处必须引用样例通信管理局 (SCA/CST) 现行法规条文及样例数据办公室 (SDO) 个人数据保护法 (样例数据保护法) 官方公报",
+        "基准时间必须为 2026 年最新生效修订版本法规",
+        "统计口径与单位必须明确 Tier 1/2/3 三类牌照资质门槛、外资持股比例限制及法定合规审计周期（月）"
+      ],
+      "output_path": "fact-store/T-02_regulatory_compliance_evidence.json",
+      "dependencies": [],
+      "data_requirements": [
+        {
+          "metric_name": "样例法域 SCA Tier 3 牌照外资最高持股比例上限",
+          "source_type": "measured",
+          "assumption_tag": null,
+          "unit": "%",
+          "benchmark_date": "2026-01"
+        }
+      ]
+    },
+    {
+      "task_id": "T-03",
+      "sub_topic": "中资大模型样例法域节点三年 TCO 测算与单 Token 推理成本分摊",
+      "perspective": "企业出海商业分析与财务总监 (Chief Financial Analyst)",
+      "target_req_ids": [
+        "REQ-03"
+      ],
+      "guidelines": [
+        "来源出处必须基于 T-01 机柜电力成本与 T-02 合规审计成本，结合主流 GPU 服务器市场官方出厂/租赁公开报价执行纯代码复算",
+        "取价日与折旧周期基准时间必须锁定在 2026-2028 三年生命周期",
+        "统计口径与单位必须统一为单百万 Token 推理/微调成本（USD/M tokens），严禁将示例币 (XDS) 与美元 (USD) 未经汇率转换直接相加"
+      ],
+      "output_path": "fact-store/T-03_tco_token_model.json",
+      "dependencies": [
+        "T-01",
+        "T-02"
+      ],
+      "data_requirements": [
+        {
+          "metric_name": "样例法域节点三年期累计 TCO 现值",
+          "source_type": "derived",
+          "assumption_tag": null,
+          "unit": "USD",
+          "benchmark_date": "2026-03"
+        },
+        {
+          "metric_name": "单百万 Token (1M Tokens) 综合推理分摊成本",
+          "source_type": "estimated",
+          "assumption_tag": "ASSUMP_GPU_UTILIZATION_65_PCT",
+          "unit": "USD/M tokens",
+          "benchmark_date": "2026-03"
+        }
+      ]
+    }
+  ]
+}

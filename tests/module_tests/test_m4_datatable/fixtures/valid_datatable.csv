@@ -1,0 +1,12 @@
+item_id,label,value,unit,source_type,source_ref,expected_expression,tolerance,caliber,assumption_tag
+ITM_A01,样例法域自建云节点年总收入 (口径A),8.04,USD_M,measured,EVID-001,,0.01;round=half_up,A,
+ITM_A02,样例法域自建云节点年总成本 (口径A),5.32,USD_M,measured,EVID-002,,0.01;round=half_up,A,
+ITM_A03,自建毛利润 (口径A),2.72,USD_M,derived,EVID-006,ITM_A01 - ITM_A02,0.01;round=half_up,A,
+ITM_A04,自建毛利率 (口径A),33.83,PERCENT,derived,EVID-006,(ITM_A01 - ITM_A02) / ITM_A01 * 100,0.01;round=half_up,A,
+ITM_B01,租赁云服务年总支出 (口径B),6.50,USD_M,quoted,EVID-003,,0.01;round=half_up,B,
+ITM_B02,租赁云服务网络带宽费 (口径B),1.20,USD_M,quoted,EVID-003,,0.01;round=half_up,B,
+ITM_B03,租赁云服务纯算力成本 (口径B),5.30,USD_M,derived,EVID-006,ITM_B01 - ITM_B02,0.01;round=half_up,B,
+ITM_C01,市场公允机柜月租单价 (口径C),1200.0,USD_PER_CABINET,quoted,EVID-005,,0,C,
+ITM_C02,市场预测三年CAGR (口径C),24.5,PERCENT,estimated,EVID-005,,0.1,C,ASM-IDC-CAGR-2026-2029
+ITM_COM01,美元兑示例币官方汇率,3.75,XDS_PER_USD,measured,EVID-004,,0,COMMON,
+ITM_A05,自建毛利润折合示例币,10.20,XDS_M,derived,EVID-006,ITM_A03 * ITM_COM01,0.01;round=half_up,A,

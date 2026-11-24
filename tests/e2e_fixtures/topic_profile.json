@@ -1,0 +1,17 @@
+{
+  "project_id": "PRJ-SAMPLE-CLOUD-2026",
+  "project_title": "中国算力与大模型企业出海样例法域建设云节点的可行性、合规壁垒与全生命周期成本效益深度调研报告 (2026年)",
+  "benchmark_type": "Real-world E2E Benchmark §8.2.1",
+  "recommended_subject": "中国算力与大模型企业出海样例法域建设云节点",
+  "target_market": "样例法域 (样例市、样例港)",
+  "key_dimensions": [
+    "SCA 云计算牌照与合规壁垒",
+    "SPC 工业与数据中心高压阶梯电价",
+    "SCL 租赁与本地云托管网络成本",
+    "SCB 汇率基准与 TCO 算术核算",
+    "SRI 市场规模与复合年均增长率",
+    "自建 IDC (口径 A) vs 租用云资源 (口径 B) 双口径财务测算"
+  ],
+  "authoritative_source_of_truth": "LOCAL_AUTHORITATIVE",
+  "version": "1.0.0"
+}

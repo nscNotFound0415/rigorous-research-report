@@ -1,0 +1,7 @@
+gate: G3
+signed_by: human:delivery_lead
+signed_at: 2026-11-20T10:00:00Z
+artifact_sha256: 0000000000000000000000000000000000000000000000000000000000000000
+decision: APPROVED
+signature: PASS_2026_CONFIRMED_G3_DELIVERY_APPROVED
+approver_role: human_decision_maker

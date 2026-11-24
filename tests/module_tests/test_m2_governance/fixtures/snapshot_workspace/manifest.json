@@ -1,0 +1,18 @@
+{
+  "manifest_version": "1.0.0",
+  "project_id": "test-snapshot",
+  "managed_files": [
+    {
+      "path": "brief.md",
+      "category": "contract",
+      "allowed_roles": ["M1_elicitation", "Human"],
+      "content_sha256": null
+    }
+  ],
+  "ignored_patterns": [
+    "backup/**",
+    "violations.log",
+    "__pycache__/**",
+    "*.pyc"
+  ]
+}

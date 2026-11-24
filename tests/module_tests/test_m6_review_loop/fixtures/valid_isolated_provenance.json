@@ -1,0 +1,19 @@
+{
+  "boundary": "outline",
+  "review_timestamp": "2026-11-23T18:00:00Z",
+  "target_artifact": "outline.md",
+  "target_artifact_sha256": "1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff",
+  "writer": {
+    "model": "deepseek-v4",
+    "session": "session-writer-outline-01",
+    "agent": "M5_Outline_Agent"
+  },
+  "reviewer": {
+    "model": "deepseek-v4",
+    "session": "session-reviewer-fresh-02",
+    "agent": "M6_Reviewer_Subprocess",
+    "channel": "同族-零记忆隔离",
+    "context_reset": true
+  },
+  "read_only_verified": true
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "boundary": "datatable",
+  "review_timestamp": "2026-11-23T12:00:00Z",
+  "target_artifact": "datatable.csv",
+  "target_artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "writer": {
+    "model": "gpt-4o",
+    "session": "session_writer_005",
+    "agent": "M4_agent"
+  },
+  "reviewer": {
+    "model": "gpt-3.5-turbo",
+    "session": "session_reviewer_006",
+    "agent": "Reviewer_agent",
+    "channel": "异族",
+    "context_reset": true
+  },
+  "read_only_verified": true,
+  "sandbox_type": "read_only"
+}

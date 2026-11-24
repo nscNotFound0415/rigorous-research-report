@@ -1,0 +1,70 @@
+{
+  "total_dimensions": 8,
+  "resolved_count": 6,
+  "unresolved_count": 2,
+  "is_complete": false,
+  "resolved_dimensions": [
+    "D1_subject",
+    "D2_background",
+    "D3_readers",
+    "D4_style",
+    "D7_online_baseline",
+    "D8_interaction"
+  ],
+  "all_unresolved_dimensions": [
+    {
+      "dimension_key": "D5_format",
+      "id": "D5",
+      "name": "交付形态与格式约定 (Format Contract)",
+      "missing_fields": [
+        "primary_format",
+        "pagination_limit"
+      ],
+      "prerequisites_met": true
+    },
+    {
+      "dimension_key": "D6_delivery_path",
+      "id": "D6",
+      "name": "交付目的地 (Delivery Path)",
+      "missing_fields": [
+        "target_local_dir",
+        "target_delivery_dir"
+      ],
+      "prerequisites_met": false
+    }
+  ],
+  "active_frontier": [
+    {
+      "id": "D5",
+      "dimension_key": "D5_format",
+      "name": "交付形态与格式约定 (Format Contract)",
+      "missing_fields": [
+        "primary_format",
+        "pagination_limit"
+      ],
+      "recommended_options": [
+        "格式：标准排版 DOCX (附自动生成 PDF)；篇幅：严谨详尽版（以事实闭环为准）",
+        "格式：高管精要 PDF (单源 Markdown 直转)；篇幅：控制在 30 页以内",
+        "格式：纯 Markdown 母本；篇幅：不设硬性限制",
+        "[Other] 自定义补充输入"
+      ],
+      "options_count": 4
+    }
+  ],
+  "next_question": {
+    "id": "D5",
+    "dimension_key": "D5_format",
+    "name": "交付形态与格式约定 (Format Contract)",
+    "missing_fields": [
+      "primary_format",
+      "pagination_limit"
+    ],
+    "recommended_options": [
+      "格式：标准排版 DOCX (附自动生成 PDF)；篇幅：严谨详尽版（以事实闭环为准）",
+      "格式：高管精要 PDF (单源 Markdown 直转)；篇幅：控制在 30 页以内",
+      "格式：纯 Markdown 母本；篇幅：不设硬性限制",
+      "[Other] 自定义补充输入"
+    ],
+    "options_count": 4
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "./schemas/task.schema.json",
+  "project_id": "SAMPLE-AI-CLOUD-2026",
+  "version": "1.0.0",
+  "tasks": [
+    {
+      "task_id": "T-01",
+      "sub_topic": "样例法域样例市数据中心自建与租用机柜成本核算",
+      "perspective": "云计算基础设施架构师 (Cloud Infrastructure Architect)",
+      "target_req_ids": [
+        "REQ-01"
+      ],
+      "guidelines": [
+        "来源出处必须采信样例电信运营商公开机柜服务报价单",
+        "取价日与基准时间必须严格锁定在 2026 年 Q1",
+        "统计口径与单位必须明确区分单机柜月度租金（USD/机柜/月）及工业电价（XDS/kWh）"
+      ],
+      "output_path": "fact-store/T-01_idc_cost_evidence.json",
+      "dependencies": [],
+      "data_requirements": [
+        {
+          "metric_name": "样例法域样例市主流 IDC 单机柜月租成本",
+          "source_type": "quoted",
+          "assumption_tag": null,
+          "unit": "USD/机柜/月",
+          "benchmark_date": "2026-03"
+        }
+      ]
+    }
+  ]
+}

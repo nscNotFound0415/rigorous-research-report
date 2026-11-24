@@ -1,0 +1,98 @@
+{
+  "version": "1.0.0",
+  "description": "违禁元叙述规则与 9 类严谨性白名单配置 (Forbidden Terms Rules & 9 Rigor Declaration Allowlists)",
+  "patterns": [
+    {
+      "id": "F-01",
+      "category": "meta_narrative",
+      "regex": "综上所述|正?如[前后上下]文?所述|正?如上述|[上下前]文(?:提到|已述|已提)|本报告将|如前所述|本报告下一阶段|前面已经分析|前轮内部测算|不再作为本报告参照|项目历史材料|本章不作为基准|历史说明|上一轮测算",
+      "description": "元叙述类：指向文档外前置材料、修订历史或报告写作流程的表述"
+    },
+    {
+      "id": "F-02",
+      "category": "self_reference",
+      "regex": "我们认为|经我核查|我已确认|我方认为|笔者认为|本报告不下|本报告不给出|本报告不作毛利|本报告不假设|本节不引述|本章不作既有安排|本章不重复论证|不作可行性结论|众所周知|值得注意的是",
+      "description": "自述型：以报告自身写作姿态代替结论、或带有主观第一人称自述的表述"
+    },
+    {
+      "id": "F-03",
+      "category": "ai_buzzwords",
+      "regex": "第一性原理|赋能|抓手|打通底层逻辑|心智模型",
+      "description": "AI 腔空泛词：缺乏具体事实支撑的空洞行业黑话"
+    },
+    {
+      "id": "F-04",
+      "category": "ai_buzzwords",
+      "regex": "(?<!业务)(?<!控制)(?<!数据)(?<!反馈)(?<!回路)闭环(?!控制)(?!回路)",
+      "description": "AI 腔泛化闭环：缺乏严密控制工程语义的随意闭环表述"
+    },
+    {
+      "id": "F-05",
+      "category": "draft_placeholder",
+      "regex": "待填|待核|母稿|过程稿|TODO|TBD|FIXME",
+      "description": "臆测数字与过程占位符：未定稿标志与待核留存标记"
+    }
+  ],
+  "allowlist": [
+    {
+      "id": "A-01",
+      "category": "rigor_declaration",
+      "regex": "不得跨口径相减(?:得毛利)?",
+      "description": "严谨性声明 1：不得跨口径相减（跨口径隔离声明）"
+    },
+    {
+      "id": "A-02",
+      "category": "rigor_declaration",
+      "regex": "不是(?:厂商或平台)?发布的数据",
+      "description": "严谨性声明 2：不是发布数据（非官方发布数据声明）"
+    },
+    {
+      "id": "A-03",
+      "category": "rigor_declaration",
+      "regex": "不构成法律意见",
+      "description": "严谨性声明 3：不构成法律意见（法务免责声明）"
+    },
+    {
+      "id": "A-04",
+      "category": "rigor_declaration",
+      "regex": "情景假设[，,]非预测|情景假设|情景测算",
+      "description": "严谨性声明 4：情景假设，非预测（测算性质声明）"
+    },
+    {
+      "id": "A-05",
+      "category": "rigor_declaration",
+      "regex": "不构成对全部品类与全部时点的普遍结论",
+      "description": "严谨性声明 5：不构成普遍结论（样本局限性声明）"
+    },
+    {
+      "id": "A-06",
+      "category": "rigor_declaration",
+      "regex": "不得以数量拆分规避",
+      "description": "严谨性声明 6：不得以数量拆分规避（合规界限声明）"
+    },
+    {
+      "id": "A-07",
+      "category": "rigor_declaration",
+      "regex": "不构成(?:降价或涨价|价格变动)的事实",
+      "description": "严谨性声明 7：不构成降价或涨价的事实（价格事实界定声明）"
+    },
+    {
+      "id": "A-08",
+      "category": "rigor_declaration",
+      "regex": "不能与单一输出挂牌价相减得出毛利",
+      "description": "严谨性声明 8：不能与单一输出挂牌价相减得出毛利（毛利核算禁止相减声明）"
+    },
+    {
+      "id": "A-09",
+      "category": "rigor_declaration",
+      "regex": "不重复正文叙述|仅供参考[，,]不作为承诺",
+      "description": "严谨性声明 9：不重复正文叙述（范围与文风界定声明）"
+    },
+    {
+      "id": "A-10",
+      "category": "technical_term",
+      "regex": "闭环控制|控制闭环|业务闭环|闭环回路",
+      "description": "合法技术术语：系统工程与业务流程中的有效闭环术语"
+    }
+  ]
+}

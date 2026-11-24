@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AdversarialReviewProvenance",
+  "description": "机器可读独立复核调用证明与隔离防伪记录模板 (Adversarial Review Provenance Record Template)",
+  "boundary": "{{BOUNDARY}}",
+  "review_timestamp": "{{REVIEW_TIMESTAMP_ISO8601}}",
+  "target_artifact": "{{TARGET_ARTIFACT_PATH}}",
+  "target_artifact_sha256": "{{TARGET_ARTIFACT_SHA256}}",
+  "writer": {
+    "model": "{{WRITER_MODEL}}",
+    "session": "{{WRITER_SESSION_ID}}",
+    "agent": "{{WRITER_AGENT_ID}}"
+  },
+  "reviewer": {
+    "model": "{{REVIEWER_MODEL}}",
+    "session": "{{REVIEWER_SESSION_ID}}",
+    "agent": "{{REVIEWER_AGENT_ID}}",
+    "channel": "{{REVIEWER_CHANNEL}}",
+    "context_reset": true
+  },
+  "read_only_verified": true,
+  "sandbox_type": "{{SANDBOX_TYPE}}",
+  "notes": "本记录由流水线自动写入 review-reports/<boundary>_provenance.json。channel 可选 '异族' 或 '同族-零记忆隔离'。必须满足 writer.session != reviewer.session；当 channel=异族 时 writer.model 与 reviewer.model 厂商前缀必须不同；当 channel=同族-零记忆隔离 时 context_reset 必须为 true 且 reviewer.session 为新建独立会话。"
+}

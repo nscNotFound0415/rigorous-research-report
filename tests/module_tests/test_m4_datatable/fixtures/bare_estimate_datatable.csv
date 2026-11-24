@@ -1,0 +1,3 @@
+item_id,label,value,unit,source_type,source_ref,expected_expression,tolerance,caliber,assumption_tag
+ITM_01,自建云节点预测算力需求,150.0,PFLOPS,estimated,EVID-001,,1.0,A,
+ITM_02,样例法域自建云节点基准电价,0.048,USD_PER_KWH,measured,EVID-002,,0.001,A,

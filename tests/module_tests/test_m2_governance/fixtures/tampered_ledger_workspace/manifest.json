@@ -1,0 +1,18 @@
+{
+  "manifest_version": "1.0.0",
+  "project_id": "test-governance-tampered",
+  "managed_files": [
+    {
+      "path": "progress-log.md",
+      "category": "governance",
+      "allowed_roles": ["M2_governance", "Human"],
+      "content_sha256": null
+    }
+  ],
+  "ignored_patterns": [
+    "backup/**",
+    "violations.log",
+    "__pycache__/**",
+    "*.pyc"
+  ]
+}

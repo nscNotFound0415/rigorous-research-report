@@ -1,0 +1,7 @@
+item_id,label,value,unit,source_type,source_ref,expected_expression,tolerance,caliber,assumption_tag
+ITM_01,自建节点收入,8.04,USD_M,measured,EVID-001,,0.01,A,
+ITM_02,自建节点成本,5.32,USD_M,measured,EVID-002,,0.01,A,
+ITM_03,毛利润倒挂计算,2.72,USD_M,derived,EVID-006,ITM_02 - ITM_01,0.01,A,
+ITM_04,跨口径直接相减,-2.72,USD_M,derived,EVID-006,ITM_01 - ITM_B01,0.01,CROSS,
+ITM_B01,租赁节点支出,5.32,USD_M,quoted,EVID-003,,0.01,B,
+ITM_06,预测增长率裸数字,25.0,PERCENT,estimated,EVID-005,,1.0,C,

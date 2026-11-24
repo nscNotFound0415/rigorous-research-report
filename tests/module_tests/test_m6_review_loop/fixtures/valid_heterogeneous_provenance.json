@@ -1,0 +1,19 @@
+{
+  "boundary": "draft_full",
+  "review_timestamp": "2026-11-23T18:00:00Z",
+  "target_artifact": "tests/module_tests/test_m6_review_loop/fixtures/injected_defects_draft.md",
+  "target_artifact_sha256": "dbae2992b48ae4f593403550223750de47e2b4072e96a7beb678a89f48f47c79",
+  "writer": {
+    "model": "claude-3-5-sonnet-20241022",
+    "session": "session-writer-9988",
+    "agent": "M7_Synthesis_Agent"
+  },
+  "reviewer": {
+    "model": "gpt-4o",
+    "session": "session-reviewer-1122",
+    "agent": "M6_Reviewer_Agent",
+    "channel": "异族",
+    "context_reset": true
+  },
+  "read_only_verified": true
+}

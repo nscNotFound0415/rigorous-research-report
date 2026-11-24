@@ -1,0 +1,4 @@
+item_id,label,value,unit,source_type,source_ref,expected_expression,tolerance,caliber,assumption_tag
+ITM_A01,样例法域自建IDC首年支出(口径A),8.04,USD_M,measured,EVID-001,,0.01,A,
+ITM_B01,样例法域公有云租用首年支出(口径B),5.32,USD_M,quoted,EVID-003,,0.01,B,
+ITM_CROSS_DIFF,自建与采购直接相减差额,2.72,USD_M,derived,EVID-006,ITM_A01 - ITM_B01,0.01,CROSS,

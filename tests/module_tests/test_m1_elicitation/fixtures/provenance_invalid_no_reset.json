@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "boundary": "outline",
+  "review_timestamp": "2026-11-23T12:00:00Z",
+  "target_artifact": "outline.md",
+  "target_artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "writer": {
+    "model": "gpt-4o",
+    "session": "session_writer_007",
+    "agent": "M5_agent"
+  },
+  "reviewer": {
+    "model": "gpt-4o",
+    "session": "session_reviewer_008",
+    "agent": "Reviewer_agent",
+    "channel": "同族-零记忆隔离",
+    "context_reset": false
+  },
+  "read_only_verified": true,
+  "sandbox_type": "read_only"
+}

@@ -1,0 +1,19 @@
+{
+  "boundary": "draft_full",
+  "review_timestamp": "2026-11-23T18:00:00Z",
+  "target_artifact": "draft_full.md",
+  "target_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "writer": {
+    "model": "gpt-4o",
+    "session": "session-writer-aaa",
+    "agent": "writer"
+  },
+  "reviewer": {
+    "model": "gpt-4o-mini",
+    "session": "session-reviewer-bbb",
+    "agent": "reviewer",
+    "channel": "异族",
+    "context_reset": true
+  },
+  "read_only_verified": true
+}

@@ -1,0 +1,148 @@
+{
+  "$schema": "./schemas/task.schema.json",
+  "project_id": "{{PROJECT_ID}}",
+  "version": "{{VERSION}}",
+  "tasks": [
+    {
+      "task_id": "{{TASK_1_ID}}",
+      "sub_topic": "{{TASK_1_SUB_TOPIC}}",
+      "perspective": "{{TASK_1_PERSPECTIVE}}",
+      "target_req_ids": [
+        "{{TASK_1_REQ_ID}}"
+      ],
+      "guidelines": [
+        "来源出处必须为{{TASK_1_SOURCE_PROVENANCE}}",
+        "取价日与基准时间必须严格限定在{{TASK_1_BENCHMARK_DATE}}",
+        "统计口径与单位必须明确为{{TASK_1_METRIC_UNIT}}"
+      ],
+      "output_path": "{{TASK_1_OUTPUT_PATH}}",
+      "dependencies": [],
+      "data_requirements": [
+        {
+          "metric_name": "{{TASK_1_METRIC_NAME}}",
+          "source_type": "measured",
+          "assumption_tag": null,
+          "unit": "{{TASK_1_UNIT}}",
+          "benchmark_date": "{{TASK_1_DATE}}"
+        }
+      ]
+    },
+    {
+      "task_id": "{{TASK_2_ID}}",
+      "sub_topic": "{{TASK_2_SUB_TOPIC}}",
+      "perspective": "{{TASK_2_PERSPECTIVE}}",
+      "target_req_ids": [
+        "{{TASK_2_REQ_ID}}"
+      ],
+      "guidelines": [
+        "来源出处必须为{{TASK_2_SOURCE_PROVENANCE}}",
+        "取价日与基准时间必须限定于{{TASK_2_BENCHMARK_DATE}}",
+        "统计口径与单位必须统一为{{TASK_2_METRIC_UNIT}}"
+      ],
+      "output_path": "{{TASK_2_OUTPUT_PATH}}",
+      "dependencies": [
+        "{{TASK_1_ID}}"
+      ],
+      "data_requirements": [
+        {
+          "metric_name": "{{TASK_2_METRIC_NAME}}",
+          "source_type": "derived",
+          "assumption_tag": null,
+          "unit": "{{TASK_2_UNIT}}",
+          "benchmark_date": "{{TASK_2_DATE}}"
+        }
+      ]
+    }
+  ],
+  "_examples": [
+    {
+      "task_id": "T-01",
+      "sub_topic": "示例主题A：目标市场数据中心自建与机柜租用成本核算",
+      "perspective": "云计算基础设施架构师 (Cloud Infrastructure Architect)",
+      "target_req_ids": [
+        "REQ-01"
+      ],
+      "guidelines": [
+        "来源出处必须采信目标市场通信监管机构官方文件或当地持牌运营商的公开机柜服务报价单，禁止引用二手商业博客转述",
+        "取价日与基准时间必须锁定到本报告基准季度，不得采用更早的历史报价",
+        "统计口径与单位必须明确区分单机柜月度租金（USD/机柜/月，含电力与制冷 SLA）与工业电价（当地货币/kWh）"
+      ],
+      "output_path": "fact-store/T-01_idc_cost_evidence.json",
+      "dependencies": [],
+      "data_requirements": [
+        {
+          "metric_name": "目标市场主流 IDC 单机柜月租成本",
+          "source_type": "quoted",
+          "assumption_tag": null,
+          "unit": "USD/机柜/月",
+          "benchmark_date": "{{BENCHMARK_DATE}}"
+        },
+        {
+          "metric_name": "目标市场数据中心 PUE 能效比估算值",
+          "source_type": "estimated",
+          "assumption_tag": "ASSUMP_PUE_1_35",
+          "unit": "无量纲比值",
+          "benchmark_date": "{{BENCHMARK_DATE}}"
+        }
+      ]
+    },
+    {
+      "task_id": "T-02",
+      "sub_topic": "示例主题B：目标市场云服务准入与数据跨境合规审计",
+      "perspective": "跨境数据合规顾问 (Cross-border Data Compliance Counsel)",
+      "target_req_ids": [
+        "REQ-02"
+      ],
+      "guidelines": [
+        "来源出处必须引用目标市场现行法规条文及数据保护主管机关官方公报，并标注现行版本与修订日期",
+        "基准时间必须为基准日最新生效修订版本法规",
+        "统计口径与单位必须明确准入类型、持股或外资限制比例及法定合规审计周期（月）"
+      ],
+      "output_path": "fact-store/T-02_regulatory_compliance_evidence.json",
+      "dependencies": [],
+      "data_requirements": [
+        {
+          "metric_name": "目标市场云服务准入的法定合规周期",
+          "source_type": "measured",
+          "assumption_tag": null,
+          "unit": "月",
+          "benchmark_date": "{{BENCHMARK_DATE}}"
+        }
+      ]
+    },
+    {
+      "task_id": "T-03",
+      "sub_topic": "示例主题C：三年 TCO 与单位推理成本测算",
+      "perspective": "企业出海商业分析与财务分析师 (Chief Financial Analyst)",
+      "target_req_ids": [
+        "REQ-03"
+      ],
+      "guidelines": [
+        "来源出处必须基于 T-01 成本事实与 T-02 合规成本事实，结合公开的加速卡租赁或采购报价执行纯代码复算",
+        "取价日与折旧周期基准时间必须锁定到既定三年生命周期",
+        "统计口径与单位必须统一为单百万 Token 推理/微调成本（USD/M tokens），严禁将不同币种未经汇率转换直接相加"
+      ],
+      "output_path": "fact-store/T-03_tco_token_model.json",
+      "dependencies": [
+        "T-01",
+        "T-02"
+      ],
+      "data_requirements": [
+        {
+          "metric_name": "节点三年期累计 TCO 现值",
+          "source_type": "derived",
+          "assumption_tag": null,
+          "unit": "USD",
+          "benchmark_date": "{{BENCHMARK_DATE}}"
+        },
+        {
+          "metric_name": "单百万 Token (1M Tokens) 综合推理分摊成本",
+          "source_type": "estimated",
+          "assumption_tag": "ASSUMP_GPU_UTILIZATION_65_PCT",
+          "unit": "USD/M tokens",
+          "benchmark_date": "{{BENCHMARK_DATE}}"
+        }
+      ]
+    }
+  ]
+}

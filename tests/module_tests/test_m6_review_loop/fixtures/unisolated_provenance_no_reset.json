@@ -1,0 +1,19 @@
+{
+  "boundary": "outline",
+  "review_timestamp": "2026-11-23T18:00:00Z",
+  "target_artifact": "outline.md",
+  "target_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "writer": {
+    "model": "gpt-4o",
+    "session": "session-writer-001",
+    "agent": "writer"
+  },
+  "reviewer": {
+    "model": "gpt-4o",
+    "session": "session-reviewer-002",
+    "agent": "reviewer",
+    "channel": "同族-零记忆隔离",
+    "context_reset": false
+  },
+  "read_only_verified": true
+}

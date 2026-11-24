@@ -1,0 +1,89 @@
+{
+  "$schema": "./schemas/task.schema.json",
+  "project_id": "PRJ-SAMPLE-CLOUD-2026",
+  "version": "1.0.0",
+  "tasks": [
+    {
+      "task_id": "T-01",
+      "sub_topic": "样例法域样例市自建 IDC 与租用云节点成本效益测算",
+      "perspective": "云计算基础设施架构师 (Cloud Infrastructure Architect)",
+      "target_req_ids": [
+        "REQ-01"
+      ],
+      "guidelines": [
+        "来源出处必须采信样例通信管理局 (SCA) 官方白皮书或样例电信运营商 (scl/样例移动) 公开机柜服务报价单，禁止引用二手商业博客转述",
+        "取价日与基准时间必须严格锁定在 2026 年 Q1（不得采用 2024 年底前历史报价）",
+        "统计口径与单位必须明确区分自建 IDC (口径 A) 与租用云节点 (口径 B) 成本分栏列示"
+      ],
+      "output_path": "fact-store/T-01_idc_cost_evidence.json",
+      "dependencies": [],
+      "data_requirements": [
+        {
+          "metric_name": "样例法域自建云节点年总成本",
+          "source_type": "measured",
+          "assumption_tag": null,
+          "unit": "USD_M",
+          "benchmark_date": "2026-01"
+        },
+        {
+          "metric_name": "市场预测三年CAGR",
+          "source_type": "estimated",
+          "assumption_tag": "ASM-IDC-CAGR-2026-2029",
+          "unit": "PERCENT",
+          "benchmark_date": "2026-01"
+        }
+      ]
+    },
+    {
+      "task_id": "T-02",
+      "sub_topic": "SCA 云计算合规牌照与外资准入壁垒分析",
+      "perspective": "样例区域跨境数据主权合规律师 (Cross-border Data Compliance Attorney)",
+      "target_req_ids": [
+        "REQ-02"
+      ],
+      "guidelines": [
+        "来源出处必须引用样例通信管理局 (SCA) 现行法规条文及样例数据办公室 (SDO) 官方公报",
+        "基准时间必须为 2026 年最新生效版本法规",
+        "统计口径与单位必须明确 Tier 1/2/3 三类牌照资质门槛、外资持股比例限制及法定审批周期"
+      ],
+      "output_path": "fact-store/T-02_regulatory_compliance_evidence.json",
+      "dependencies": [],
+      "data_requirements": [
+        {
+          "metric_name": "SCA Tier 3 牌照外资准入合规周期",
+          "source_type": "measured",
+          "assumption_tag": null,
+          "unit": "月",
+          "benchmark_date": "2026-01"
+        }
+      ]
+    },
+    {
+      "task_id": "T-03",
+      "sub_topic": "样例电网高压工业电价与汇率敏感性分析",
+      "perspective": "企业出海商业分析与财务总监 (Chief Financial Analyst)",
+      "target_req_ids": [
+        "REQ-03"
+      ],
+      "guidelines": [
+        "来源出处必须采信样例电网 (SPC) 高压工业电价公报与样例央行 (SCB) 官方汇率",
+        "取价日与折算基准日必须锁定在 2026 年 1 月固定汇率 1 USD = 3.75 XDS",
+        "统计口径与单位必须统一为单机柜电费与折合示例币综合成本，禁止跨口径未经换算直接相减"
+      ],
+      "output_path": "fact-store/T-03_tco_token_model.json",
+      "dependencies": [
+        "T-01",
+        "T-02"
+      ],
+      "data_requirements": [
+        {
+          "metric_name": "自建毛利润折合示例币",
+          "source_type": "derived",
+          "assumption_tag": null,
+          "unit": "XDS_M",
+          "benchmark_date": "2026-02"
+        }
+      ]
+    }
+  ]
+}

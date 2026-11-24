@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ResearchTasksSpecification",
+  "description": "JSON Schema defining structured research tasks configuration for M3 Research Decomposition & Planning module",
+  "type": "object",
+  "required": ["tasks"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional URI/path to this schema"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Unique identifier of the research project"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the task configuration"
+    },
+    "tasks": {
+      "type": "array",
+      "description": "List of granular, executable research task units",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/taskItem"
+      }
+    },
+    "_examples": {
+      "type": "array",
+      "description": "Optional exemplary task items for illustration",
+      "items": {
+        "$ref": "#/definitions/taskItem"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "dataRequirementItem": {
+      "type": "object",
+      "required": ["source_type"],
+      "properties": {
+        "metric_name": {
+          "type": "string",
+          "description": "Name or descriptor of the quantitative/qualitative data point"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": ["measured", "derived", "estimated", "quoted"],
+          "description": "Data origin taxonomy constraint"
+        },
+        "assumption_tag": {
+          "type": ["string", "null"],
+          "description": "Mandatory non-empty identifier when source_type is estimated"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Metric unit of measurement"
+        },
+        "benchmark_date": {
+          "type": "string",
+          "description": "Reference date or pricing timeframe"
+        }
+      },
+      "additionalProperties": true
+    },
+    "taskItem": {
+      "type": "object",
+      "required": [
+        "task_id",
+        "sub_topic",
+        "perspective",
+        "target_req_ids",
+        "guidelines",
+        "output_path",
+        "dependencies",
+        "data_requirements"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "Unique task identifier, e.g. T-01, T-P3-01"
+        },
+        "sub_topic": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Specific research sub-topic name"
+        },
+        "perspective": {
+          "type": "string",
+          "minLength": 1,
+          "description": "STORM-style expert persona/perspective driving this research unit"
+        },
+        "target_req_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^REQ-[A-Za-z0-9_-]+$"
+          },
+          "description": "Requirement IDs from brief.md mapped to and covered by this task"
+        },
+        "guidelines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Task-level research execution guidelines asserting data three essentials"
+        },
+        "output_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Target evidence artifact path under fact-store/"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Task IDs of preceding dependencies forming an acyclic graph (DAG)"
+        },
+        "data_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/dataRequirementItem"
+          },
+          "description": "Expected numerical or factual indicators with source type classifications"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

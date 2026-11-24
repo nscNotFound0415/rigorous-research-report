@@ -1,0 +1,19 @@
+{
+  "boundary": "draft_full",
+  "review_timestamp": "2026-11-23T18:00:00Z",
+  "target_artifact": "draft_full.md",
+  "target_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "writer": {
+    "model": "claude-3-5-sonnet",
+    "session": "session-duplicate-777",
+    "agent": "writer"
+  },
+  "reviewer": {
+    "model": "gpt-4o",
+    "session": "session-duplicate-777",
+    "agent": "reviewer",
+    "channel": "异族",
+    "context_reset": true
+  },
+  "read_only_verified": true
+}

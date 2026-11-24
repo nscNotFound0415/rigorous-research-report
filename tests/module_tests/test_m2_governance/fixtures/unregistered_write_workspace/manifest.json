@@ -1,0 +1,21 @@
+{
+  "manifest_version": "1.0.0",
+  "project_id": "test-governance-unregistered",
+  "managed_files": [
+    {
+      "path": "brief.md",
+      "category": "contract",
+      "allowed_roles": [
+        "M1_elicitation",
+        "Human"
+      ],
+      "content_sha256": "1ca36c95d99930d4e5edd936bc8e5e58e02466e0cf485b6505c23535861aba7e"
+    }
+  ],
+  "ignored_patterns": [
+    "backup/**",
+    "violations.log",
+    "__pycache__/**",
+    "*.pyc"
+  ]
+}
