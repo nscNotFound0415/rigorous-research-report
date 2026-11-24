@@ -14,6 +14,18 @@ cp -r src/ ~/.zcode/skills/rigorous-research-report/
 
 调用：`/rigorous-research-report`，或当轮明确说「按调研流水线执行」。**默认不自动触发**。
 
+## 系统要求
+
+`src/scripts/` 全部是纯 Python 3 标准库实现（Python 3.12+），不需要任何第三方包、不联网。但 **PDF 交付链路依赖两个系统件**：
+
+- `soffice`（LibreOffice headless），用于 docx → pdf 无损转换。缺失时 `build_pdf.py` 输出 `{"pdf":false,"reason":"soffice_unavailable"}`，不会伪造 PDF。
+- **CJK 字体（必须）**。PDF 生成环境必须安装中文字体：
+  - Debian/Ubuntu：`sudo apt-get install -y --no-install-recommends libreoffice-writer fonts-noto-cjk`
+  - macOS / Windows：系统自带中文字体，通常无需额外安装
+  - Docker / CI：务必在镜像或工作流里显式装上 `fonts-noto-cjk`
+
+  缺中文字体时，soffice 用替代字形渲染，**PDF 文本层会丢失中文字形**（页数与字符映射都与本地不同），目录页码无法定位。此时脚本会明确报错 `pdf_text_layer_lost_cjk` 并给出 `diagnostic.hint`（提示安装 CJK 字体），**不会写入任何猜测页码**；`build_pdf.py` 也会在 PDF 生成成功后返回 `text_layer_warning` 提示文本层不可靠。
+
 ---
 
 ## 为什么存在
@@ -62,17 +74,17 @@ M  变更回路（外部输入 → 失效传播 → 对照表 → 局部改写 �
 ```
 skill/          技能本体：SKILL.md + references/×9 + templates/×14 + scripts/×14 + schemas/×1
 specs/          8 个能力规格（OpenSpec 风格，49 个可判定 Scenario）
-tests/          143 项模块测试 + 54 项端到端断言（全部离线，夹具均为合成数据）
+tests/          147 项模块测试 + 55 项端到端断言（全部离线，夹具均为合成数据）
 docs/DESIGN.md  设计说明与踩坑清单
 ```
 
-`src/scripts/` 全部**纯 Python 3 标准库**、无第三方依赖、无网络访问；PDF 转换调用系统预装 `soffice`（缺失时脚本显式降级并标记，绝不伪造成功）。
+`src/scripts/` 全部**纯 Python 3 标准库**、无第三方依赖、无网络访问；PDF 转换调用系统预装 `soffice`（缺失时脚本显式降级并标记，绝不伪造成功），且要求系统已安装 CJK 字体（见「系统要求」）。
 
 ## 验证
 
 ```bash
-python3 -m pytest tests/ -q      # 143 项模块测试
-bash tests/e2e/run_e2e.sh         # 54 项端到端断言（门禁矩阵 + 离线闭环）
+python3 -m pytest tests/ -q      # 147 项模块测试
+bash tests/e2e/run_e2e.sh         # 55 项端到端断言（门禁矩阵 + 离线闭环）
 ```
 
 两者均**不联网**，可在 CI 直接跑。端到端线束覆盖五个门禁 ×（缺签署件／桩件／机器签名／哈希错绑／有效放行）矩阵，以及 M3→M8 的完整离线闭环。

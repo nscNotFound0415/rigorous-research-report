@@ -22,8 +22,12 @@ jobs:
       - name: Install test runner
         # The skill itself is stdlib-only; only the test harness needs pytest.
         run: python -m pip install --upgrade pip pytest
-      - name: Install LibreOffice (docx -> pdf conversion)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-writer
+      - name: Install LibreOffice + CJK fonts (docx -> pdf conversion)
+        # fonts-noto-cjk is mandatory. Without CJK fonts soffice renders PDFs with
+        # substituted glyphs and the PDF text layer loses Chinese characters, so TOC
+        # page backfill cannot locate headings (toc_two_pass reports
+        # pdf_text_layer_lost_cjk with an actionable hint). Mirror this in any runtime.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-writer fonts-noto-cjk
       - name: Module tests
         run: python -m pytest tests/ -q
       - name: End-to-end suite

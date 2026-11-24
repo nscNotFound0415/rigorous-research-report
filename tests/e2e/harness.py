@@ -1102,6 +1102,51 @@ class E2EHarness:
             "missing": multi_verify["missing"][:5],
         }
 
+        # ---- M7 跨环境字体诊断：断言「诊断信息可操作」，而不是断言环境 ----
+        # 有 CJK 字体 -> 正常路径必须走通；无 CJK 字体 -> 必须报 pdf_text_layer_lost_cjk
+        # 并给出非空 hint，而不是含糊的「N 条目录项都找不到」。
+        multi_page_texts = e2e_pdf_page_texts(multi_pdf) if os.path.exists(multi_pdf) else {}
+        pdf_layer_text = "".join(multi_page_texts.values())
+        layer_has_cjk = any("\u4e00" <= ch <= "\u9fff" for ch in pdf_layer_text)
+        layer_diag = toc_multi.get("diagnostic") if isinstance(toc_multi.get("diagnostic"), dict) else {}
+        if layer_has_cjk:
+            layer_ok = code_c == 0 and toc_multi.get("toc_backfilled") is True
+            layer_expected = "CJK text layer present -> exit=0, toc_backfilled=true (no false positive)"
+            layer_actual = (
+                f"pdf_text_layer_has_cjk=True, exit={code_c}, "
+                f"toc_backfilled={toc_multi.get('toc_backfilled')}, reason={toc_multi.get('reason')}"
+            )
+        else:
+            layer_ok = (
+                code_c == 1
+                and toc_multi.get("reason") == "pdf_text_layer_lost_cjk"
+                and bool(layer_diag.get("hint"))
+            )
+            layer_expected = (
+                "no CJK fonts -> exit=1, reason=pdf_text_layer_lost_cjk, "
+                "diagnostic.hint non-empty (actionable)"
+            )
+            layer_actual = (
+                f"pdf_text_layer_has_cjk=False, exit={code_c}, "
+                f"reason={toc_multi.get('reason')}, hint={bool(layer_diag.get('hint'))}"
+            )
+        self.add(
+            "M7-cjk-text-layer-diagnostic", "E2E-c", "M7",
+            f"python3 src/scripts/toc_two_pass.py {multi_docx} {multi_pdf} (font-availability branch)",
+            layer_expected,
+            layer_actual,
+            code_c,
+            "PASS" if layer_ok else "FAIL",
+            {"stdout": out_c, "pdf_text_layer_has_cjk": layer_has_cjk,
+             "diagnostic": layer_diag, "unresolved_count": len(toc_multi.get("unresolved_toc_entries") or [])},
+        )
+        self.key_assertions["cjk_text_layer"] = {
+            "pdf_text_layer_has_cjk": layer_has_cjk,
+            "reason": toc_multi.get("reason"),
+            "hint_present": bool(layer_diag.get("hint")),
+            "toc_backfilled": toc_multi.get("toc_backfilled"),
+        }
+
         # ---------------------------------------------------------------- M8
         old_draft = fixture("baseline_draft_for_change.md")
         patched = fixture("patched_draft_c01.md")

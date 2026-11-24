@@ -746,3 +746,189 @@ def test_delivery_readback_detects_tampered_toc_page(multipage_delivery, tmp_pat
     with open(out_json, "r", encoding="utf-8") as fh:
         on_disk = json.load(fh)
     assert on_disk["page_mismatch"] != []
+
+
+# ---------------------------------------------------------------------------
+# CJK 文本层诊断用例（跨环境字体缺失导致 PDF 文本层丢字形）
+# ---------------------------------------------------------------------------
+
+def _write_ascii_only_pdf(path):
+    """
+    生成一个结构合法、但文本层为纯 ASCII（无 ToUnicode CMap）的最小 PDF。
+    模拟「系统缺少 CJK 字体 → PDF 文本层不含中文字形」的跨环境场景。
+    """
+    objs = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        2: b"<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+        3: b"<< /Type /Page /Parent 2 0 R /Contents 5 0 R "
+           b"/Resources << /Font << /F1 7 0 R >> >> >>",
+        4: b"<< /Type /Page /Parent 2 0 R /Contents 6 0 R "
+           b"/Resources << /Font << /F1 7 0 R >> >> >>",
+        7: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    }
+    content1 = b"BT /F1 12 Tf 72 720 Td (Chapter One) Tj ET"
+    content2 = b"BT /F1 12 Tf 72 720 Td (Chapter Two) Tj ET"
+    objs[5] = b"<< /Length %d >>\nstream\n" % len(content1) + content1 + b"\nendstream"
+    objs[6] = b"<< /Length %d >>\nstream\n" % len(content2) + content2 + b"\nendstream"
+
+    out = b"%PDF-1.4\n"
+    for obj_id in sorted(objs):
+        out += b"%d 0 obj\n" % obj_id + objs[obj_id] + b"\nendobj\n"
+    out += b"trailer\n<< /Root 1 0 R >>\n%%EOF\n"
+    with open(path, "wb") as fh:
+        fh.write(out)
+
+
+def test_toc_two_pass_reports_pdf_text_layer_lost_cjk(tmp_path):
+    """
+    [新增用例 5] 目录条目含中文、但 PDF 文本层无中文时，
+    toc_two_pass 必须退出码 1，reason 为 pdf_text_layer_lost_cjk，
+    且 diagnostic.hint 非空可操作（而不是只报 43 条都找不到）。
+    """
+    docx = os.path.join(tmp_path, "output.docx")
+    manifest = os.path.join(tmp_path, "manifest.json")
+    pdf = os.path.join(tmp_path, "ascii_only.pdf")
+
+    subprocess.run(
+        [sys.executable, BUILD_DOCX_PY, DRAFT_CLEAN_MD, "--out", docx, "--manifest", manifest],
+        check=True,
+    )
+    _write_ascii_only_pdf(pdf)
+    entries_before = pdf_probe.read_docx_toc(docx)
+
+    res = subprocess.run(
+        [sys.executable, TOC_TWO_PASS_PY, docx, pdf],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    assert res.returncode == 1, f"expected exit 1, got {res.returncode}: {res.stdout}"
+    data = json.loads(res.stdout.strip())
+    assert data["toc_backfilled"] is False
+    assert data["reason"] == "pdf_text_layer_lost_cjk", data
+    assert data["diagnostic"]["hint"], "diagnostic must carry an actionable hint"
+    assert data["diagnostic"]["cjk_ratio_entries"] >= 0.05
+    assert data["diagnostic"]["cjk_ratio_pdf"] < 0.01
+    assert data["unresolved_toc_entries"], "all CJK entries should be unresolved"
+
+    # 失败时不得写入任何猜测页码：目录页码保持第一遍占位值不变
+    assert pdf_probe.read_docx_toc(docx) == entries_before
+
+
+def test_delivery_readback_reports_pdf_text_layer_lost_cjk(tmp_path):
+    """
+    [新增用例 6] 回读校验侧同样要能归因：目录含中文而 PDF 文本层无中文时，
+    输出 page_mismatch 之外必须追加 text_layer_diagnostic，且退出码 1。
+    """
+    docx = os.path.join(tmp_path, "output.docx")
+    manifest = os.path.join(tmp_path, "manifest.json")
+    pdf = os.path.join(tmp_path, "ascii_only.pdf")
+    out_json = os.path.join(tmp_path, "readback.json")
+
+    subprocess.run(
+        [sys.executable, BUILD_DOCX_PY, DRAFT_CLEAN_MD, "--out", docx, "--manifest", manifest],
+        check=True,
+    )
+    _write_ascii_only_pdf(pdf)
+
+    res = subprocess.run(
+        [
+            sys.executable, DELIVERY_READBACK_PY,
+            "--docx", docx, "--pdf", pdf,
+            "--source", DRAFT_CLEAN_MD, "--out", out_json,
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    assert res.returncode == 1, f"expected exit 1, got {res.returncode}: {res.stdout}"
+    data = json.loads(res.stdout.strip())
+    assert data["page_mismatch"] != [], "missing text layer must never pass page checks"
+    diag = data.get("text_layer_diagnostic")
+    assert diag is not None, f"missing text_layer_diagnostic: {data}"
+    assert diag["hint"]
+    assert diag["cjk_ratio_entries"] >= 0.05 and diag["cjk_ratio_pdf"] < 0.01
+
+    with open(out_json, "r", encoding="utf-8") as fh:
+        on_disk = json.load(fh)
+    assert on_disk.get("text_layer_diagnostic", {}).get("hint")
+
+
+def test_cjk_text_layer_diagnostic_not_triggered_on_normal_pdf(tmp_path):
+    """
+    [新增用例 7 · 防假阴性] 含中文文本层的正常 PDF 仍然走通，
+    不得被新判定误伤（不退化为 pdf_text_layer_lost_cjk）。
+    """
+    docx = os.path.join(tmp_path, "output.docx")
+    manifest = os.path.join(tmp_path, "manifest.json")
+    pdf = os.path.join(tmp_path, "output.pdf")
+
+    subprocess.run(
+        [sys.executable, BUILD_DOCX_PY, DRAFT_CLEAN_MD, "--out", docx, "--manifest", manifest],
+        check=True,
+    )
+    env = dict(os.environ)
+    env["HOME"] = os.path.join(str(tmp_path), "lo_home")
+    os.makedirs(env["HOME"], exist_ok=True)
+    build = subprocess.run(
+        [sys.executable, BUILD_PDF_PY, docx, "--out", pdf],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
+    )
+    assert build.returncode == 0, build.stderr
+    build_info = json.loads(build.stdout.strip())
+    if build_info.get("pdf") is not True:
+        pytest.skip(f"soffice unavailable: {build_info}")
+
+    # 若运行环境本身缺 CJK 字体，正常文本层无从产生：按环境跳过（CI 已装 fonts-noto-cjk）
+    pdf_text = "".join(pdf_probe.extract_page_texts(pdf).values())
+    if not any("\u4e00" <= ch <= "\u9fff" for ch in pdf_text):
+        pytest.skip("environment lacks CJK fonts; normal text layer unavailable")
+
+    # 正常场景：build_pdf 不得误报文本层丢失
+    assert "text_layer_warning" not in build_info, build_info
+
+    toc = subprocess.run(
+        [sys.executable, TOC_TWO_PASS_PY, docx, pdf],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    assert toc.returncode == 0, toc.stdout
+    toc_info = json.loads(toc.stdout.strip())
+    assert toc_info["toc_backfilled"] is True
+    assert "diagnostic" not in toc_info
+    assert toc_info.get("reason") != "pdf_text_layer_lost_cjk"
+
+    rb = subprocess.run(
+        [
+            sys.executable, DELIVERY_READBACK_PY,
+            "--docx", docx, "--pdf", pdf,
+            "--source", DRAFT_CLEAN_MD, "--out", os.path.join(str(tmp_path), "rb.json"),
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    assert rb.returncode == 0, rb.stdout
+    rb_data = json.loads(rb.stdout.strip())
+    assert "text_layer_diagnostic" not in rb_data
+    assert rb_data["page_mismatch"] == []
+
+
+def test_build_pdf_preflight_flags_lost_cjk_text_layer(tmp_path):
+    """
+    [新增用例 8] build_pdf 的生成后预检函数：源 docx 含中文、PDF 文本层无中文时，
+    必须返回 pdf_text_layer_lost_cjk 诊断（而不伪造成无风险的普通成功）。
+    """
+    import importlib.util
+
+    docx = os.path.join(tmp_path, "output.docx")
+    manifest = os.path.join(tmp_path, "manifest.json")
+    pdf = os.path.join(tmp_path, "ascii_only.pdf")
+
+    subprocess.run(
+        [sys.executable, BUILD_DOCX_PY, DRAFT_CLEAN_MD, "--out", docx, "--manifest", manifest],
+        check=True,
+    )
+    _write_ascii_only_pdf(pdf)
+
+    spec = importlib.util.spec_from_file_location("build_pdf_under_test", BUILD_PDF_PY)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    diag = module.preflight_text_layer(docx, pdf)
+    assert diag is not None
+    assert diag["hint"]
+    assert diag["cjk_ratio_docx"] >= 0.05 and diag["cjk_ratio_pdf"] < 0.01

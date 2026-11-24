@@ -30,6 +30,51 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 # 目录行特征：点前导紧接页码（独立于生成器侧正则的实现）
 TOC_LINE_LEADER_RE = re.compile(r"\.{5,}\s*\d{1,4}")
 
+# 「文本层丢失 CJK 字形」诊断阈值（与生成侧各自独立实现，仅用于解释失败原因）
+ENTRY_CJK_RATIO_FLOOR = 0.05
+PDF_CJK_RATIO_CEILING = 0.01
+
+LOST_CJK_HINT = (
+    "PDF 文本层未包含中文字形：系统缺少 CJK 字体。请安装中文字体"
+    "（如 fonts-noto-cjk / 思源黑体）后重新生成 PDF 再回填目录页码。"
+)
+
+
+def _cjk_ratio_of(text: str) -> float:
+    """文本中 CJK 表意字符（含扩展区与兼容表意区）占比；空文本为 0.0。"""
+    if not text:
+        return 0.0
+    hits = 0
+    for ch in text:
+        code = ord(ch)
+        if (
+            0x3400 <= code <= 0x4DBF
+            or 0x4E00 <= code <= 0x9FFF
+            or 0xF900 <= code <= 0xFAFF
+            or 0x20000 <= code <= 0x2FA1F
+        ):
+            hits += 1
+    return hits / len(text)
+
+
+def diagnose_text_layer(
+    toc_titles: List[str],
+    body_text: str,
+) -> Optional[Dict[str, Any]]:
+    """
+    目录条目含 CJK 而 PDF 正文文本层几乎不含 CJK 时，返回可操作诊断；否则 None。
+    该诊断只解释失败原因，绝不改变页码吻合判定本身。
+    """
+    entry_ratio = _cjk_ratio_of("".join(toc_titles))
+    pdf_ratio = _cjk_ratio_of(body_text)
+    if entry_ratio >= ENTRY_CJK_RATIO_FLOOR and pdf_ratio < PDF_CJK_RATIO_CEILING:
+        return {
+            "cjk_ratio_entries": round(entry_ratio, 4),
+            "cjk_ratio_pdf": round(pdf_ratio, 4),
+            "hint": LOST_CJK_HINT,
+        }
+    return None
+
 
 def _read_stream_bytes(objects: Dict[int, bytes], body: bytes) -> Optional[bytes]:
     """
@@ -352,6 +397,7 @@ def verify_delivery_readback(
     unresolved_page_entries: List[str] = []
     toc_page_integrity_errors: List[str] = []
     toc_pages: List[int] = []
+    text_layer_diagnostic: Optional[Dict[str, Any]] = None
 
     # 目录与正文标题必须等长且顺序一致
     if len(toc_titles) != len(headings):
@@ -382,6 +428,12 @@ def verify_delivery_readback(
         located_pages, unresolved_page_entries = locate_heading_pages_in_body(
             toc_titles, page_texts, body_start_page
         )
+
+        # 失败归因：若目录条目含 CJK 而 PDF 正文文本层不含 CJK，追加可操作诊断
+        body_text = "".join(
+            page_texts.get(p, "") for p in range(body_start_page, total_pages + 1)
+        )
+        text_layer_diagnostic = diagnose_text_layer(toc_titles, body_text)
 
         # 目录页完整性：每个目录条目都必须真实出现在实测出来的目录页内，
         # 否则说明实测目录页数不足或目录残缺。
@@ -441,6 +493,8 @@ def verify_delivery_readback(
         "toc_page_integrity_errors": toc_page_integrity_errors,
         "toc_pages": toc_pages,
     }
+    if text_layer_diagnostic is not None:
+        report_data["text_layer_diagnostic"] = text_layer_diagnostic
 
     # 写入 delivery_readback.json
     out_dir = os.path.dirname(os.path.abspath(out_json_path))
@@ -462,6 +516,7 @@ def verify_delivery_readback(
         and len(page_bounds_violations) == 0
         and len(unresolved_page_entries) == 0
         and len(toc_page_integrity_errors) == 0
+        and text_layer_diagnostic is None
     )
 
     # 标准 stdout JSON 输出结构（严格符合 CRITERION M7-3，并附加增强校验字段）
@@ -475,6 +530,8 @@ def verify_delivery_readback(
         "toc_page_integrity_errors": toc_page_integrity_errors,
         "toc_pages": toc_pages,
     }
+    if text_layer_diagnostic is not None:
+        cli_stdout["text_layer_diagnostic"] = text_layer_diagnostic
 
     return cli_stdout, passed
 

@@ -66,6 +66,9 @@ Agent 与人类操作者在组织全文合稿、执行一致性打磨、清除 A
 ### 4.2 无损转 PDF 与优雅降级
 1. **系统预装调用 [SHALL]**：PDF 构建必须通过 `scripts/build_pdf.py` 调用系统预装之 `soffice --headless --convert-to pdf` 执行无损导出。
 2. **优雅降级原则 [SHALL]**：若系统环境未预装 soffice，脚本必须输出 JSON `{"pdf":false,"reason":"soffice_unavailable"}` 并返回退出码 0，严禁通过任何手段伪造假 PDF。降级时退出码为 0，调用方必须解析 JSON 字段 `pdf` 判定，禁止仅凭退出码判定成功。
+3. **CJK 字体依赖 [SHALL]**：PDF 生成环境必须安装中文字体（Debian/Ubuntu：`fonts-noto-cjk`；macOS/Windows 自带中文字体）。缺字体时 soffice 以替代字形渲染，PDF 文本层将丢失中文字形，目录两遍法与回读校验均无法定位标题。CI 与容器镜像必须显式安装该字体。
+4. **文本层预检与风险提示 [SHALL]**：`build_pdf.py` 在 PDF 生成成功后必须比对「源 docx 文本」与「生成 PDF 文本层」的 CJK 字符占比。若源文本含 CJK 而 PDF 文本层几乎不含 CJK，则 PDF 已生成（`pdf:true`）但必须附加
+   `"text_layer_warning":"pdf_text_layer_lost_cjk"` 与含 `hint` 的 `text_layer_diagnostic`。严禁把文本层不可靠的产物静默当作正常成功交付。
 
 ### 4.3 TOC 两遍法 (TOC Two-Pass)
 1. **两遍法执行流程 [SHALL]**：
@@ -84,6 +87,8 @@ Agent 与人类操作者在组织全文合稿、执行一致性打磨、清除 A
    - `headings_minus_toc` 必须为空数组 `[]`；
    - 系统判定标准为“有序集合完全一致”，严禁仅以“条目数量相等”作为放行依据。
 2. **页码零倒挂 [SHALL]**：PDF 可用时，`page_mismatch` 必须为空数组 `[]`；PDF 缺失时，必须显式标为 `"skipped_no_pdf"`，退出码为 0，严禁虚假放行。降级时退出码为 0，调用方必须解析 JSON 字段 `page_mismatch` 判定，禁止仅凭退出码判定成功。
+3. **标题无法定位的归因 [SHALL]**：当存在无法定位的目录条目时，`toc_two_pass.py` 必须区分两类失败：目录条目 CJK 占比 >= 0.05 而 PDF 正文文本层 CJK 占比 < 0.01 时，返回 `reason:"pdf_text_layer_lost_cjk"` 并附带 `diagnostic.hint`（提示安装 CJK 字体）；其余情况返回 `reason:"unresolved_toc_entries"` 且同样附带 `diagnostic`（含两侧 CJK 占比）。两种情形均退出码 1，且严禁写入猜测页码。
+4. **回读侧同源诊断 [SHALL]**：`delivery_readback.py` 遇到同一征候时，必须在 `page_mismatch` 之外输出 `text_layer_diagnostic`（含 `hint`）并退出码 1，使「N 条目录项找不到」的报错可归因于缺字体而非正文缺失。
 
 ### 5.2 构建幂等性验证 (Idempotency)
 1. **部件哈希一致性 [SHALL]**：对同一份单源草稿 `draft_full.md` 连续执行两次完整构建，生成的 `build_manifest.json` 中各 OOXML 部件 SHA256 哈希值必须 100% 逐字节相同。任何含有随机数、未受控时间戳漂移的构建器一律判定为不合格。

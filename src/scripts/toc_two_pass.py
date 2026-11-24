@@ -11,8 +11,17 @@ CLI 契约:
   python3 scripts/toc_two_pass.py delivery/output.docx delivery/output.pdf
   stdout (成功): {"toc_backfilled":true,"entries_count":N,"pages":{"标题":页码,...}} (退出码 0)
   stdout (PDF缺失): {"toc_backfilled":false,"reason":"pdf_unavailable"} (退出码 0)
-  stdout (存在无法定位标题): {"toc_backfilled":false,"unresolved_toc_entries":[...]} (退出码 1)
+  stdout (存在无法定位标题): {"toc_backfilled":false,"reason":"unresolved_toc_entries",
+                               "diagnostic":{...},"unresolved_toc_entries":[...]} (退出码 1)
+  stdout (文本层丢失 CJK 字形): {"toc_backfilled":false,"reason":"pdf_text_layer_lost_cjk",
+                               "diagnostic":{...,"hint":"..."},"unresolved_toc_entries":[...]} (退出码 1)
   退出码: 0 (成功或优雅降级) / 1 (处理失败，含标题无法定位)
+
+跨环境诊断:
+  若目录条目本身含大量 CJK 字符（cjk_ratio_entries >= 0.05），而 PDF 文本层几乎不含
+  CJK 字符（cjk_ratio_pdf < 0.01），判定为「系统缺少 CJK 字体导致 PDF 文本层字形丢失」，
+  返回 reason=pdf_text_layer_lost_cjk 并附带可操作的 diagnostic.hint。
+  该判定只用于解释失败原因，绝不用于放宽或伪造页码回填结果。
 
 页码判定规则 (无任何固定页偏移)：
   1. 先从 PDF 逐页文本中识别「目录实际占用的页数」：从第 1 页起，连续满足
@@ -37,6 +46,54 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 # 点前导 + 页码：目录行的典型形态（如 "第一章 ........ 12"）
 DOT_LEADER_PAGE_RE = re.compile(r"\.{5,}\s*\d{1,4}")
+
+# 判定「文本层丢失 CJK 字形」的阈值（仅用于诊断，不参与页码定位）
+ENTRY_CJK_RATIO_THRESHOLD = 0.05
+PDF_CJK_RATIO_THRESHOLD = 0.01
+
+LOST_CJK_HINT = (
+    "PDF 文本层未包含中文字形：系统缺少 CJK 字体。请安装中文字体"
+    "（如 fonts-noto-cjk / 思源黑体）后重新生成 PDF 再回填目录页码。"
+)
+
+
+def _is_cjk_char(ch: str) -> bool:
+    """判断单字符是否属于 CJK 表意文字（含扩展 A/B 区与兼容表意区）。"""
+    cp = ord(ch)
+    return (
+        0x3400 <= cp <= 0x4DBF
+        or 0x4E00 <= cp <= 0x9FFF
+        or 0xF900 <= cp <= 0xFAFF
+        or 0x20000 <= cp <= 0x2FA1F
+    )
+
+
+def cjk_char_ratio(text: str) -> float:
+    """返回给定文本中 CJK 表意字符的占比；空文本返回 0.0。"""
+    if not text:
+        return 0.0
+    return sum(1 for ch in text if _is_cjk_char(ch)) / len(text)
+
+
+def build_text_layer_diagnostic(
+    entry_titles: List[str],
+    body_text: str,
+) -> Tuple[Dict[str, Any], bool]:
+    """
+    对比「目录条目标题」与「PDF 正文文本层」的 CJK 字符占比。
+    返回 (diagnostic, lost_cjk)。lost_cjk=True 表示文本层疑似因缺字体丢失中文字形。
+    """
+    ratio_entries = cjk_char_ratio("".join(entry_titles))
+    ratio_pdf = cjk_char_ratio(body_text)
+    diagnostic: Dict[str, Any] = {
+        "cjk_ratio_entries": round(ratio_entries, 4),
+        "cjk_ratio_pdf": round(ratio_pdf, 4),
+    }
+    lost_cjk = (
+        ratio_entries >= ENTRY_CJK_RATIO_THRESHOLD
+        and ratio_pdf < PDF_CJK_RATIO_THRESHOLD
+    )
+    return diagnostic, lost_cjk
 
 
 def extract_stream_payload(objects: Dict[int, bytes], body: bytes) -> Optional[bytes]:
@@ -358,10 +415,27 @@ def run_toc_two_pass(docx_path: str, pdf_path: str) -> Dict[str, Any]:
     heading_pages, unresolved = determine_heading_pages(toc_headings, page_texts, body_start_page)
 
     if unresolved:
-        # 严禁静默写入猜测页码：显式失败
+        # 先诊断失败原因：区分「环境缺 CJK 字体导致文本层损坏」与「真实的标题缺失」
+        body_text = "".join(
+            page_texts.get(p, "") for p in range(body_start_page, len(page_texts) + 1)
+        )
+        diagnostic, lost_cjk = build_text_layer_diagnostic(toc_headings, body_text)
+
+        if lost_cjk:
+            # 显式给出可操作提示；仍然保持失败，绝不写入猜测页码
+            diagnostic["hint"] = LOST_CJK_HINT
+            return {
+                "toc_backfilled": False,
+                "reason": "pdf_text_layer_lost_cjk",
+                "diagnostic": diagnostic,
+                "unresolved_toc_entries": unresolved,
+            }
+
+        # 严禁静默写入猜测页码：显式失败，并附带诊断字段便于排查
         return {
             "toc_backfilled": False,
             "reason": "unresolved_toc_entries",
+            "diagnostic": diagnostic,
             "entries_count": len(toc_headings),
             "toc_pages": toc_pages,
             "body_start_page": body_start_page,
