@@ -34,9 +34,11 @@
 
 门禁的实现细节值得单列，因为它是「人审」能不能落地的关键：
 - 签署件绑定被放行工物的 `sha256`，杜绝事后搭便车；
-- `signed_by` / `signature` 命中机器标记词表即拒（`agent`/`ai`/`bot`/`模型`/`自动`/…），且不误伤 `operator_huang`、`human:reviewer_lead` 这类人类标识；
+- `signed_by` / `authorized_by` 命中机器标记词表即拒（`agent`/`ai`/`bot`/`模型`/`自动`/…），且不误伤 `operator_huang`、`human:reviewer_lead` 这类人类标识；
 - 含 `stub: true` 的签署件一律拒（`STUB_REJECTED`）——**演练桩不是人类签字**；
 - 台账复选框的 `[x]` 只允许人类写，agent 写入一律被检出并回滚，记 `violations.log`。
+
+**裁决归属与记录方式的分离**：门禁的裁决（APPROVED / REJECTED / CHANGES_REQUESTED）永远由人类作出，机器不得代为拍板。但「谁敲下这份文件」不再等同于「谁做的裁决」——人类在对话里说「通过」之后，Agent 可以用 `gate_guard.py --record-approval` 依授权原话代写签署件，代价是必须留下五个可回对的溯源字段（授权原话、会话与消息引用、授权时间、人类授权人、代录者），且 `authorized_by` 必须与 `signed_by` 同为人类身份。缺一即 `AUTHORIZATION_TRACE_INCOMPLETE` 阻断。
 
 ---
 

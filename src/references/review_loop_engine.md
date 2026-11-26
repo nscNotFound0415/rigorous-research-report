@@ -129,7 +129,7 @@
    - Agent 仅可 [ONLY WHEN] 在《纠错对照稿》（`correction-diff.md`）中给出倾向性分析与处置建议，严禁 [SHALL NOT] 越权擅自替人类拍板定性。
 2. **G2 门禁防伪放行流程**：
    - 调度器生成 `gates/G2-request.md`，汇总待裁决条目与哈希；
-   - 人类操作者在 `gates/G2-approval.md` 中填写裁决口令与决策（`APPROVED`）；
+   - 人类操作者作出裁决，并在 `gates/G2-approval.md` 中填写裁决口令与决策（`APPROVED`）；亦可在会话中明确授权，由 Agent 依授权原话代录签署件，并留下 `authorization_quote`、`authorization_turn`、`authorization_at`、`authorized_by`、`recorded_by` 五个溯源字段；
    - `scripts/gate_guard.py --gate G2 --verify --artifact correction-diff.md --approval gates/G2-approval.md` 校验通过后，纠错写入方获合法授权。
 3. **桩签署件硬拒绝语义（G 门禁统一）**：
    - 门禁只接受真实人类签署件。任何在签署件中声明 `stub: true`（或 `stub:true`）的演练桩、样板件、自动生成件，一律判定为 `STUB_REJECTED`、`blocked=true`、退出码 1，即使其 `artifact_sha256` 完全吻合也绝不放行。

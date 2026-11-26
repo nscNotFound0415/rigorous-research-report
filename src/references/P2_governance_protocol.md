@@ -35,6 +35,7 @@
 4. **已审定**：
    - 语义：工件已获人类决策者在对应签署件（`gates/G0-approval.md` 至 `gates/G3-approval.md` 或 `gates/change-<id>-approval.md`）中签名批准。
    - 判定标准：签署件存在、字段齐全、决策为 `APPROVED`、签署人非 agent、`artifact_sha256` 逐字节匹配，且签署件**不含** `stub: true` 桩标记。
+   - **两种记录方式**：`human_signed`（人类直接签署）与 `session_transcribed`（人类会话授权后由 Agent 代录）。代录模式下签署件必须包含 `authorization_quote`、`authorization_turn`、`authorization_at`、`authorized_by`、`recorded_by` 五个溯源字段，且 `authorized_by` 与 `signed_by` 一致、均为人类身份；缺一即不得判定为已审定。
    - 限制：具备最高法理效力，非经 M8 变更回路禁止 [SHALL NOT] 覆写。
    - **桩件硬拒绝**：门禁只接受真实人类签署件。凡声明 `stub: true`（或 `stub:true`）的演练桩、样板件、自动生成件，一律判定 `STUB_REJECTED`、`blocked=true`、退出码 1，即使哈希吻合也不得放行。G0/G1/G2/G3/change-<id> 五门共用此校验；测试中用于验证放行路径的夹具必须为无 stub 标记的人类格式文件，且测试 README 须声明「该夹具不代表真实人类签署」。
 
@@ -50,7 +51,7 @@
 ### 3.1 勾选权人类排他公理
 1. **Agent 勾选剥夺**：治理台账中任务完成状态列 `- [ ]` 的勾选权严格归人类所有。任何 AI 智能体、脚本或自动化会话严禁 [SHALL NOT] 直接在台账中将 `- [ ]` 修改为 `- [x]`。
 2. **Agent 建议列限定**：Agent 仅可 [ONLY WHEN] 在完成阶段性工作后，向独立的 `agent_建议` 列填写建议（如 `建议放行`、`待复核`、`待人审`、`待事件触发`），不得越权操作复选框。
-3. **代打勾唯一授权通路**：仅当 [ONLY WHEN] 人类已在 `gates/*.md` 中签署 `APPROVED` 且哈希校验完全一致时，Agent 方可 [THEN] 依据该有效签署件更新复选框为 `- [x]`，且必须 [SHALL] 同步在「依据签署件与哈希」列明文记录签署件文件名与 `artifact_sha256`。
+3. **代打勾唯一授权通路**：仅当 [ONLY WHEN] 人类已在 `gates/*.md` 中签署 `APPROVED` 且哈希校验完全一致时，Agent 方可 [THEN] 依据该有效签署件更新复选框为 `- [x]`，且必须 [SHALL] 同步在「依据签署件与哈希」列明文记录签署件文件名与 `artifact_sha256`。代录模式（`session_transcribed`）的签署件同样适用，但须额外在台账中登记其 `authorization_turn`，使打勾依据可回溯到人类具体授权。
 
 ### 3.2 违规探测与强制回滚
 1. **自评打勾强制拦截**：门禁与存储守护工具（`gate_guard.py` / `storage_guard.py`）在执行门禁判定或存储自检时，必须 [SHALL] 扫描台账全部任务行。

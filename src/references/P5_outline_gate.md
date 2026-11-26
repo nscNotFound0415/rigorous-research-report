@@ -86,7 +86,10 @@ Agent 与人类操作者在规划章节拓扑、管理前置数据引用、编�
 ### 6.1 G1 门禁标准流转步骤
 1. **前置自检通过 [SHALL]**：仅当 `outline_check.py outline.md --check-sections` 与 `outline_check.py outline.md --evidence-index evidence-index.md --require-resolved` 均返回退出码 0 时，方可启动 G1 门禁流程。
 2. **生成申请单 [SHALL]**：Agent 生成 `gates/G1-request.md`，完整填写大纲结构摘要、底表覆盖分析及哈希值。
-3. **人类离线签署 [SHALL]**：人类操作者在场审查大纲与章节契约，手工填写并签署 `gates/G1-approval.md`。
+3. **人类签署 [SHALL]**：人类操作者审查大纲与章节契约后作出裁决。签署件有两种记录方式：
+   - 直接签署：人类亲手填写 `gates/G1-approval.md`；
+   - 会话授权代录：人类在会话中明确授权后，Agent 依授权原话代写签署件，须留下 `authorization_quote`、`authorization_turn`、`authorization_at`、`authorized_by`、`recorded_by` 五个溯源字段。
+   两种方式均以 `gate_guard.py` 校验通过为准。
 4. **门禁核验放行 [SHALL]**：调用 `gate_guard.py` 核验签署凭单：
    ```bash
    python3 scripts/gate_guard.py --gate G1 --verify --artifact outline.md --approval gates/G1-approval.md
@@ -94,7 +97,7 @@ Agent 与人类操作者在规划章节拓扑、管理前置数据引用、编�
    仅当返回 `state: APPROVED` 且退出码为 0 时，才允许启动 M7 合稿模块。
 
 ### 6.2 防伪与阻断铁律
-1. **禁止 Agent 自签 [SHALL NOT]**：门禁签署件 `signed_by` 字段严禁包含 `agent:*` 标识，一经发现，`gate_guard.py` 立即阻断（退出码 1）。
+1. **禁止 Agent 自签 [SHALL NOT]**：门禁签署件 `signed_by` 与 `authorized_by` 字段严禁包含 `agent:*` 标识，一经发现，`gate_guard.py` 立即阻断（退出码 1）。代录模式下 Agent 只做忠实转写，严禁自行作出裁决，严禁伪造授权原话。
 2. **未签署严禁合稿 [SHALL NOT]**：若 `gates/G1-approval.md` 缺失或处于 `PENDING` 状态，流水线严禁启动 M7 合稿，向 `draft_full.md` 写入 0 字节。
 3. **驳回处理机制 [SHALL]**：若人类将 `decision` 标记为 `REJECTED` 或 `CHANGES_REQUESTED`：
    - `python3 scripts/gate_guard.py --gate G1 --check-only` 必须返回退出码 1 阻断流程；

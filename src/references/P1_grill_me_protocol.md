@@ -252,13 +252,23 @@ Agent 与人类操作者之间的交互必须严格遵循本协议。
 在输出决策摘要的同时，Agent 必须在工作区生成且仅生成以下两个工件：
 1. `brief.md`：
    - 必须包含元数据、八项澄清小节（2.1 至 2.8）、机读诉求索引（2.9 诉求与实体索引，带 REQ-ID）、术语与口径（2.10）、继承声明与人工裁决（2.11，每条继承项必须具备 CONFIRMED 或 REVISED 裁决）、以及内嵌的「3. 项目宪法」五原则。
-   - 2.1–2.8 每项必须登记 `clarification_status`；非 `CLARIFIED` 项必须登记 `unclarified_reason` 并按默认行为写入可执行值（如 `target_local_dir` 绝对路径、`source_of_truth` 为 `LOCAL_AUTHORITATIVE`、`interaction_mode` 为 `synchronous_frontier`）。
+   - 2.1–2.8 每项必须登记 `clarification_status`；非 `CLARIFIED` 项必须登记 `unclarified_reason` 并按协议默认行为写入可执行值（如 `target_local_dir` 绝对路径、`source_of_truth` 为 `LOCAL_AUTHORITATIVE`、`interaction_mode` 为 `synchronous_frontier`）。
    - `status` 字段值必须严格设置为 `DRAFT`。
    - 必须严格计算 `brief_content_sha256`（置空该字段后，UTF-8 LF 哈希）。
 2. `gates/G0-request.md`：
    - G0 放行申请单，如实填写工件路径 `brief.md` 与实际文件 SHA-256 哈希值。
 
 ### 4.4 阻断铁律与下游保护
-1. **签署前零产出铁律**：在人类于 `gates/G0-approval.md` 完成签署、且 `python3 scripts/gate_guard.py --gate G0 --check-only` 返回退出码 0 之前，Agent **严禁**在工作区生成任何后续阶段的文件（包括但不限于 `progress-log.md`、`task.json`、`datatable.*`、`outline.md`、`draft_full.md` 等）。
-2. **严禁代理自签**：`gates/G0-approval.md` 只能由人类操作者在场签署；Agent 严禁自造、修改或模拟该文件的任何字段。
-3. **状态阻断响应**：若 `gate_guard.py` 退出码为 1，系统必须保持挂起等候状态，严禁擅自跳过门禁向下游流转。
+1. **签署前零产出铁律**：在 G0 门禁处于 APPROVED 状态（无论是人类直接签署的 `human_signed`，还是人类会话授权后由 Agent 代录的 `session_transcribed`）且 `python3 scripts/gate_guard.py --gate G0 --check-only` 返回退出码 0 之前，Agent **严禁**在工作区生成任何后续阶段的文件（包括但不限于 `progress-log.md`、`task.json`、`datatable.*`、`outline.md`、`draft_full.md` 等）。
+2. **裁决归属人类，记录方式可变 [SHALL]**：门禁裁决权始终归人类，Agent 永不得自行作出 APPROVED / REJECTED / CHANGES_REQUESTED 裁决。签署件存在两种记录方式：
+   - **直接签署 (`human_signed`)**：人类亲手填写 `gates/G0-approval.md`。
+   - **会话授权代录 (`session_transcribed`)**：人类在会话中明确授权后，Agent 依授权原话代写签署件。代录必须留下可审计溯源：`authorization_quote`（人类授权原话）、`authorization_turn`（会话与消息引用）、`authorization_at`（授权时间）、`authorized_by`（人类身份，须与 `signed_by` 一致）、`recorded_by`（代录者）。任一字段缺失、授权人写成机器身份、授权人与签署人不一致，Agent 严禁自行补写或绕过，`gate_guard.py` 将以 `AUTHORIZATION_TRACE_INCOMPLETE` 或 `AGENT_SIGNATURE_PROHIBITED` 阻断。
+   - 推荐以脚本代录，避免手填哈希漂移：
+     ```bash
+     python3 scripts/gate_guard.py --record-approval --gate G0 --artifact brief.md --root <dir> \
+       --authorized-by "<人类身份>" --authorization-quote "<人类授权原话>" \
+       --authorization-turn "<会话与消息引用>" --decision APPROVED
+     ```
+3. **严禁伪造授权 [SHALL NOT]**：Agent 严禁在没有人类真实授权的情况下生成任何 `session_transcribed` 签署件，严禁伪造、推测或补写人类授权原话。授权原话必须逐字取自人类在会话中的实际表述。
+4. **严禁代理自签 [SHALL NOT]**：`gates/<G>-approval.md` 的 `signed_by` 与 `authorized_by` 严禁包含 `agent:*` 或任何机器标识，一经发现，`gate_guard.py` 立即阻断（退出码 1）。
+5. **状态阻断响应**：若 `gate_guard.py` 退出码为 1，系统必须保持挂起等候状态，严禁擅自跳过门禁向下游流转。

@@ -21,7 +21,7 @@ metadata:
 
 本项目执行全流程必须遵守五项底线常量，禁止任何形式改写：
 1. **事实判锤唯二通路**：一手原文比对与代码算术复算，禁止任何模型凭空臆测。
-2. **定性裁决权归人类**：对于争议表述之存废与降级，机器禁止自作主张，定性裁决权归人类。
+2. **定性裁决权归人类**：对于争议表述之存废与降级，机器禁止自作主张，定性裁决权归人类。裁决归属与记录方式分离：人类在会话中明确授权后，Agent 可依授权原话代录门禁签署件，但 Agent 永不得自行作出裁决，也不得伪造授权原话。
 3. **无隐藏状态**：材料存在 != 已复核 != 已同步 != 已审定；台账状态必须真实、无未声明的中间态。
 4. **非同族对抗复核且审者只读**：复核者必须与生成者实现模型或通道级隔离，审者权限严格设为只读，禁止直接修改受审文本。
 5. **严禁跨口径相减**：不同口径、不同币种、不同周期的指标必须设立分栏对比，禁止直接执行加减运算。
@@ -55,6 +55,12 @@ P1 落地澄清 ──[G0 门禁]──> P2 治理适配 ──> P3 课题拆分
 ```
 
 门禁卡点与签署件路径契约（未获签署或校验失败时由 `scripts/gate_guard.py` 返回退出码 1 阻断）：
+
+**签署件记录方式（两种，均以 `gate_guard.py` 校验为准）**：
+- `human_signed`：人类直接手工签署 `gates/<G>-approval.md`。
+- `session_transcribed`：人类在会话中明确授权后，Agent 依授权原话代录签署件。代录必须留下 `authorization_quote`（人类授权原话）、`authorization_turn`（会话与消息引用）、`authorization_at`（授权时间）、`authorized_by`（人类身份，须与 `signed_by` 一致）、`recorded_by`（代录者）五个溯源字段。授权原话必须逐字取自人类实际表述，严禁伪造或补写。代录不改变裁决归属，Agent 仍不得自行作出裁决。
+
+各门禁卡点：
 - **G0 澄清放行门 (Join 1)**：卡在 P1 唯一事实源 `brief.md` 生成后、P2/P3 启动前。申请件：`gates/G0-request.md`；签署件：`gates/G0-approval.md`。11 个小节齐全是硬结构；八项澄清（2.1–2.8）为建议澄清清单，不是准入条件，每项必须登记 `clarification_status`（CLARIFIED / NOT_CLARIFIED / NOT_APPLICABLE），未澄清或不适用项按协议默认行为执行并登记 `unclarified_reason`；未获 G0 批准禁止在工作区生成后续阶段文件。
 - **G1 大纲审批门 (Join 2)**：卡在 P5 章节规划完成、Join 2 汇合前。申请件：`gates/G1-request.md`；签署件：`gates/G1-approval.md`。必须待补数据 PENDING 归零且 100% 锚定一手事实；未获 G1 批准禁止启动正文合稿。
 - **G2 纠错裁决门**：卡在 P6 全文合稿与边界 3 复核后。申请件：`gates/G2-request.md`；签署件：`gates/G2-approval.md`。定性争议存废与口径分栏降级必须由人类签署裁决。
@@ -70,6 +76,7 @@ P1 落地澄清 ──[G0 门禁]──> P2 治理适配 ──> P3 课题拆分
 | P1 落地澄清 | `references/P1_grill_me_protocol.md` | 简报规范核验（8 项澄清状态＋11 小节结构） | `python3 scripts/gate_guard.py --verify-brief brief.md` | 已建 |
 | P1 落地澄清 | `references/P1_grill_me_protocol.md` | G0 门禁状态探测 | `python3 scripts/gate_guard.py --gate G0 --check-only` | 已建 |
 | P1 落地澄清 | `references/P1_grill_me_protocol.md` | G0 门禁放行校验 | `python3 scripts/gate_guard.py --gate G0 --verify --artifact brief.md --approval gates/G0-approval.md` | 已建 |
+| 跨门禁 | `templates/approval_gate.template.md` | 会话授权代录签署件（人类授权后 Agent 忠实转写） | `python3 scripts/gate_guard.py --record-approval --gate <G> --artifact <file> --root <dir> --authorized-by "<人类身份>" --authorization-quote "<授权原话>" --authorization-turn "<会话与消息引用>"` | 已建 |
 | P2 治理适配 | `references/P2_governance_protocol.md` | 治理台账合规核验 | `python3 scripts/storage_guard.py --check-ledger` | 已建 |
 | P2 治理适配 | `references/storage_adapters.md` | 未登记写入拦截探测 | `python3 scripts/storage_guard.py --root <dir> --manifest manifest.json --probe-unregistered-write` | 已建 |
 | P2 治理适配 | `references/storage_adapters.md` | 本地 Git 快照与同步 | `python3 scripts/adapter_git_sync.py --snapshot --target <dir>` | 已建 |

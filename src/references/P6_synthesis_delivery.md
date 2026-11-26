@@ -98,7 +98,7 @@ Agent 与人类操作者在组织全文合稿、执行一致性打磨、清除 A
 ## 6. G3 交付放行门禁与交付参数规范
 
 ### 6.1 G3 交付终审门禁
-1. **人类排他签署 [SHALL]**：G3 交付放行单 `gates/G3-approval.md` 必须由人类操作者手工签署，包含现场确认口令与被放行文件实际哈希，Agent 严禁自造放行单。
+1. **人类排他裁决 [SHALL]**：G3 交付放行单 `gates/G3-approval.md` 的放行裁决必须由人类作出，包含确认口令与被放行文件实际哈希，Agent 严禁自行裁决或伪造放行单。签署件有两种记录方式：人类直接手工签署；或人类在会话中明确授权后由 Agent 依授权原话代录，并在签署件中留下 `authorization_quote`、`authorization_turn`、`authorization_at`、`authorized_by`、`recorded_by` 五个溯源字段。
 2. **放行前置条件 [ONLY WHEN... THEN...]**：仅当满足下列全部条件时，方可提请 G3 终审放行：
    - M6 全文复核报告 `review-reports/draft_full_review.md` 确认 D0=0；
    - 文本卫生扫描 `audit_text_hygiene.py` 确认 violations 违规计数为 0；

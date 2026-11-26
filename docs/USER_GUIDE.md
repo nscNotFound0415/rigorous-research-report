@@ -113,7 +113,10 @@ python3 src/scripts/delivery_readback.py --docx output.docx --pdf output.pdf --s
 
 ### 1. 门禁文件结构与职责
 *   **申请单（由 Agent 生成）**：路径为 `gates/G*-request.md`。Agent 会将当前待审核物料的路径、生成的 SHA-256 哈希、核心决策摘要填写在申请单中，然后停止推进。
-*   **签署件（必须由人类操作者写入）**：路径为 `gates/G*-approval.md`。只有存在该文件且字段合法、哈希一致时，门禁检查脚本 `gate_guard.py` 才会放行。
+*   **签署件（裁决由人类作出，记录方式有两种）**：路径为 `gates/G*-approval.md`。只有存在该文件且字段合法、哈希一致时，门禁检查脚本 `gate_guard.py` 才会放行。
+    *   **直接签署**：人类操作者亲手写入签署件。
+    *   **会话授权代录**：人类在对话中明确给出授权（例如「通过」「确认放行」），Agent 依授权原话代写签署件，并在其中留下 `authorization_quote`（你的原话）、`authorization_turn`（会话与消息引用）、`authorization_at`（授权时间）、`authorized_by`（人类身份）、`recorded_by`（代录者）五个溯源字段，事后可逐字回对。
+    *   两种方式的裁决归属都是人类：Agent 不得自行作出 APPROVED / REJECTED / CHANGES_REQUESTED，也不得伪造授权原话。
 
 ### 2. 合法签署件标准模板示例
 
@@ -133,14 +136,49 @@ approver_role: human_decision_maker
 已审阅 brief.md，核心诉求与研究范围界定明确，同意启动调研规划。
 ```
 
+若你希望在对话里直接授权，让 Agent 代录签署件，用下面这条命令（哈希由脚本自动计算，避免手填漂移）：
+
+```bash
+python3 src/scripts/gate_guard.py --record-approval --gate G0 \
+  --artifact brief.md --root <项目根目录> \
+  --authorized-by "human:chief_analyst_zhang" \
+  --authorization-quote "通过，确认放行 G0" \
+  --authorization-turn "<会话与消息引用>"
+```
+
+生成结果：
+
+```markdown
+# 门禁审批签署件 (G0 Approval Sign-off)
+
+> 本件由 Agent 依人类在会话中的明确授权代录（authorization_mode: session_transcribed）。
+> 授权原话、授权轮次与授权时间见下方字段；裁决归属仍为人类，Agent 仅忠实转写。
+
+- gate: G0
+- decision: APPROVED
+- signed_by: human:chief_analyst_zhang
+- signed_at: 2026-11-24T10:00:00Z
+- artifact_sha256: 053865462b1dc7fbb8320ecb2c5020a6cfb610c0382c0f0fe1b4d739fdbbdf67
+- signature: 通过，确认放行 G0
+- authorization_mode: session_transcribed
+- authorized_by: human:chief_analyst_zhang
+- authorization_quote: 通过，确认放行 G0
+- authorization_turn: sess_abc123/msg_456
+- authorization_at: 2026-11-24T10:00:00Z
+- recorded_by: agent:zcode
+- comments:
+```
+
 ### 3. 三大防伪铁律（违规将直接被 exit 1 阻断）
 
 1.  **拒绝机器与代签（Anti-Agent-Sign）**：  
-    `signed_by` 或 `signature` 中若包含 `agent`、`ai`、`bot`、`模型`、`自动`、`脚本` 等词汇，`gate_guard.py` 会返回 `AGENT_SIGNATURE_PROHIBITED` 并退出码 1。
+    `signed_by` 或 `authorized_by` 中若包含 `agent`、`ai`、`bot`、`模型`、`自动`、`脚本` 等词汇，`gate_guard.py` 会返回 `AGENT_SIGNATURE_PROHIBITED` 并退出码 1。
 2.  **拒绝演练桩件（Anti-Stub）**：  
     若签署件中标记了 `stub: true`，会被判为演练模拟桩件，系统返回 `STUB_REJECTED` 并退出码 1。**门禁只接受真实人类授权**。
 3.  **哈希强绑定（Hash-Binding）**：  
     签署件中的 `artifact_sha256` 必须与被放行文件（如 `brief.md` 或生成的 `output.docx`）的实际 SHA-256 逐位吻合。若人类签字后文件又被 Agent 篡改，哈希失效，门禁自动锁死。
+4.  **代录溯源完整性（Anti-Forgery）**：  
+    `authorization_mode: session_transcribed` 时，五个溯源字段缺一、或 `authorized_by` 与 `signed_by` 不是同一人，系统返回 `AUTHORIZATION_TRACE_INCOMPLETE` 并退出码 1。
 
 ---
 

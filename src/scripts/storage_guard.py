@@ -238,8 +238,27 @@ def check_and_enforce_ledger(
                     fields = parse_approval_file(app_path)
                     decision = fields.get("decision", "").strip().upper()
                     signed_by = fields.get("signed_by", "").strip()
+                    auth_mode = (fields.get("authorization_mode") or "human_signed").strip().lower()
+                    # 代录模式必须留全五个授权溯源字段，且授权人与签署人一致
+                    trace_ok = True
+                    if auth_mode == "session_transcribed":
+                        trace_fields = (
+                            "authorization_quote",
+                            "authorization_turn",
+                            "authorization_at",
+                            "authorized_by",
+                            "recorded_by",
+                        )
+                        trace_ok = all((fields.get(k) or "").strip() for k in trace_fields) and (
+                            (fields.get("authorized_by") or "").strip().lower() == signed_by.lower()
+                        )
                     # 必须由人类签署，禁止 agent:*
-                    if decision == "APPROVED" and signed_by and not re.match(r"^agent:.*", signed_by, re.IGNORECASE):
+                    if (
+                        decision == "APPROVED"
+                        and signed_by
+                        and trace_ok
+                        and not re.match(r"^agent:.*", signed_by, re.IGNORECASE)
+                    ):
                         is_authorized = True
                         break
 

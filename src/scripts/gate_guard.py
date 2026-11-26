@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 
 # 5 条宪法字符串为全局系统常量，禁止任意重构或使用改写变体
@@ -77,6 +78,20 @@ SOFT_ENUM_FIELDS: Dict[str, Dict[str, frozenset]] = {
     },
 }
 FORBIDDEN_PENDING_TERMS: Tuple[str, ...] = ("待定", "待填", "待补", "（待确认）", "(待确认)")
+
+# 授权模式：human_signed = 人类直接签署；session_transcribed = 人类在会话中明确授权后由 Agent 代录
+AUTHORIZATION_MODES: Tuple[str, ...] = ("human_signed", "session_transcribed")
+AUTHORIZATION_MODE_TRANSCRIBED = "session_transcribed"
+# 会话代录模式必填的授权溯源字段
+TRANSCRIBED_REQUIRED_FIELDS: Tuple[str, ...] = (
+    "authorization_quote",
+    "authorization_turn",
+    "authorization_at",
+    "authorized_by",
+    "recorded_by",
+)
+# 授权原文最小有效长度（防止用空串或单字符敷衍授权溯源）
+MIN_AUTHORIZATION_QUOTE_LEN = 2
 
 
 def split_brief_clarification_sections(content: str) -> Dict[str, str]:
@@ -183,7 +198,7 @@ def parse_approval_file(file_path: str) -> Dict[str, str]:
         lines = f.readlines()
 
     kv_pattern = re.compile(
-        r"^\s*(?:-\s+)?(?:\*\*)?([a-zA-Z0-9_-]+)(?:\*\*)?\s*:\s*[\"']?(.*?)[\"']?\s*$"
+        r"^\s*(?:-\s+)?(?:\*\*)?([a-zA-Z0-9_-]+)(?:\*\*)?\s*:\s*(.*?)\s*$"
     )
 
     for line in lines:
@@ -194,6 +209,9 @@ def parse_approval_file(file_path: str) -> Dict[str, str]:
         if m:
             key = m.group(1).strip()
             val = m.group(2).strip()
+            # 仅剥除成对的外层引号，内部引号原样保留（授权原文引用常含引号）
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in ("\"", "'"):
+                val = val[1:-1]
             fields[key] = val
 
     return fields
@@ -348,6 +366,77 @@ def check_gate(
             exit_code=1,
         )
 
+    # 3a. 授权模式判定与校验
+    # human_signed：人类直接手工签署（既有路径）。
+    # session_transcribed：人类在会话中明确授权，Agent 依授权代录签署件。
+    # 代录不改变裁决归属——裁决仍由人类作出，Agent 仅忠实转写并留下可审计溯源。
+    auth_mode = (fields.get("authorization_mode") or "human_signed").strip().lower()
+    if auth_mode not in AUTHORIZATION_MODES:
+        emit_json_and_exit(
+            gate=norm_gate,
+            state="AUTHORIZATION_MODE_INVALID",
+            blocked=True,
+            artifact_sha256=declared_sha256 or None,
+            reason=f"authorization_mode must be one of {sorted(AUTHORIZATION_MODES)}, got '{auth_mode}'",
+            exit_code=1,
+        )
+
+    if auth_mode == AUTHORIZATION_MODE_TRANSCRIBED:
+        missing_auth = [k for k in TRANSCRIBED_REQUIRED_FIELDS if not (fields.get(k) or "").strip()]
+        if missing_auth:
+            emit_json_and_exit(
+                gate=norm_gate,
+                state="AUTHORIZATION_TRACE_INCOMPLETE",
+                blocked=True,
+                artifact_sha256=declared_sha256 or None,
+                reason=(
+                    "Session-transcribed approval missing authorization trace field(s): "
+                    + ", ".join(missing_auth)
+                ),
+                exit_code=1,
+            )
+        quote = (fields.get("authorization_quote") or "").strip()
+        if len(quote) < MIN_AUTHORIZATION_QUOTE_LEN:
+            emit_json_and_exit(
+                gate=norm_gate,
+                state="AUTHORIZATION_TRACE_INCOMPLETE",
+                blocked=True,
+                artifact_sha256=declared_sha256 or None,
+                reason=(
+                    "authorization_quote must carry the human's own wording "
+                    f"(>= {MIN_AUTHORIZATION_QUOTE_LEN} chars), got {len(quote)}"
+                ),
+                exit_code=1,
+            )
+        # 授权人必须是人类身份；代录者字段允许是 Agent（由 recorded_by 承载）
+        authorized_by = (fields.get("authorized_by") or "").strip()
+        is_mach_auth, reason_auth = is_machine_identity(authorized_by)
+        if is_mach_auth:
+            emit_json_and_exit(
+                gate=norm_gate,
+                state="AGENT_SIGNATURE_PROHIBITED",
+                blocked=True,
+                artifact_sha256=declared_sha256 or None,
+                reason=(
+                    "authorized_by must be a human identifier "
+                    f"({reason_auth}), got '{authorized_by}'"
+                ),
+                exit_code=1,
+            )
+        # 授权人与签署人必须是同一人，防止代录时张冠李戴
+        if authorized_by.lower() != signed_by.lower():
+            emit_json_and_exit(
+                gate=norm_gate,
+                state="AUTHORIZATION_TRACE_INCOMPLETE",
+                blocked=True,
+                artifact_sha256=declared_sha256 or None,
+                reason=(
+                    f"authorized_by '{authorized_by}' does not match signed_by '{signed_by}'; "
+                    "the transcribed signer must be the human who gave the authorization"
+                ),
+                exit_code=1,
+            )
+
     # 4. 人类身份与防伪校验 (Human Identity Verification)
     # 4a. 可选字段 approver_role 校验：若存在则必须为 human_decision_maker
     approver_role = fields.get("approver_role")
@@ -374,16 +463,28 @@ def check_gate(
             exit_code=1,
         )
 
-    is_mach_sig, reason_sig = is_machine_identity(signature)
-    if is_mach_sig:
-        emit_json_and_exit(
-            gate=norm_gate,
-            state="AGENT_SIGNATURE_PROHIBITED",
-            blocked=True,
-            artifact_sha256=declared_sha256 or None,
-            reason=f"Agent self-signing is strictly prohibited; signature must not contain machine marker ({reason_sig}), got '{signature}'",
-            exit_code=1,
-        )
+    # signature 在代录模式下承载人类原话，不得按机器标记误判（人类原话可能含“模型”“自动”等词）
+    if auth_mode == AUTHORIZATION_MODE_TRANSCRIBED:
+        if not signature:
+            emit_json_and_exit(
+                gate=norm_gate,
+                state="AUTHORIZATION_TRACE_INCOMPLETE",
+                blocked=True,
+                artifact_sha256=declared_sha256 or None,
+                reason="signature must carry the human's own confirming words in session-transcribed mode",
+                exit_code=1,
+            )
+    else:
+        is_mach_sig, reason_sig = is_machine_identity(signature)
+        if is_mach_sig:
+            emit_json_and_exit(
+                gate=norm_gate,
+                state="AGENT_SIGNATURE_PROHIBITED",
+                blocked=True,
+                artifact_sha256=declared_sha256 or None,
+                reason=f"Agent self-signing is strictly prohibited; signature must not contain machine marker ({reason_sig}), got '{signature}'",
+                exit_code=1,
+            )
 
     # 5. 校验 decision 决策状态（优先判定，若未 APPROVED 则直接阻断）
     if decision != "APPROVED":
@@ -733,6 +834,111 @@ def check_provenance_file(file_path: str) -> None:
         sys.exit(0)
 
 
+def record_session_approval(
+    gate: str,
+    root_dir: str,
+    authorized_by: str,
+    authorization_quote: str,
+    authorization_turn: str,
+    artifact_override: Optional[str] = None,
+    signature: Optional[str] = None,
+    decision: str = "APPROVED",
+    comments: Optional[str] = None,
+    recorded_by: str = "agent:zcode",
+) -> None:
+    """
+    会话授权代录 (Session-Transcribed Approval)
+
+    人类在会话中明确授权后，由 Agent 依授权内容代写门禁签署件。
+    代录不改变裁决归属：decision 仍由人类作出，Agent 只负责忠实转写与留痕。
+
+    必填溯源字段：authorization_quote / authorization_turn / authorization_at /
+    authorized_by / recorded_by。脚本自动计算工件哈希并回读校验，杜绝手填哈希漂移。
+    """
+    norm_gate = normalize_gate_name(gate)
+    default_artifact, default_approval = get_default_gate_paths(norm_gate, root_dir)
+
+    if artifact_override:
+        artifact_path = (
+            os.path.normpath(artifact_override)
+            if os.path.isabs(artifact_override)
+            else os.path.normpath(os.path.join(root_dir, artifact_override))
+        )
+    else:
+        artifact_path = default_artifact
+    approval_path = default_approval
+
+    if not os.path.exists(artifact_path):
+        emit_json_and_exit(
+            gate=norm_gate,
+            state="ARTIFACT_NOT_FOUND",
+            blocked=True,
+            artifact_sha256=None,
+            reason=f"Artifact file not found: {artifact_path}",
+            exit_code=1,
+        )
+
+    quote = (authorization_quote or "").strip()
+    if len(quote) < MIN_AUTHORIZATION_QUOTE_LEN:
+        emit_json_and_exit(
+            gate=norm_gate,
+            state="AUTHORIZATION_TRACE_INCOMPLETE",
+            blocked=True,
+            artifact_sha256=None,
+            reason=(
+                "authorization_quote must carry the human's own wording "
+                f"(>= {MIN_AUTHORIZATION_QUOTE_LEN} chars), got {len(quote)}"
+            ),
+            exit_code=1,
+        )
+
+    is_mach_auth, reason_auth = is_machine_identity(authorized_by)
+    if is_mach_auth:
+        emit_json_and_exit(
+            gate=norm_gate,
+            state="AGENT_SIGNATURE_PROHIBITED",
+            blocked=True,
+            artifact_sha256=None,
+            reason=f"authorized_by must be a human identifier ({reason_auth}), got '{authorized_by}'",
+            exit_code=1,
+        )
+
+    actual_sha256 = compute_file_sha256(artifact_path).lower()
+    signed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    sig_text = (signature or quote).strip()
+
+    body = f"""# 门禁审批签署件 ({norm_gate} Approval Sign-off)
+
+> 本件由 Agent 依人类在会话中的明确授权代录（authorization_mode: session_transcribed）。
+> 授权原话、授权轮次与授权时间见下方字段；裁决归属仍为人类，Agent 仅忠实转写。
+
+- gate: {norm_gate}
+- decision: {decision.strip().upper()}
+- signed_by: {authorized_by.strip()}
+- signed_at: {signed_at}
+- artifact_sha256: {actual_sha256}
+- signature: {sig_text}
+- authorization_mode: {AUTHORIZATION_MODE_TRANSCRIBED}
+- authorized_by: {authorized_by.strip()}
+- authorization_quote: {quote}
+- authorization_turn: {authorization_turn.strip()}
+- authorization_at: {signed_at}
+- recorded_by: {recorded_by}
+- comments: {(comments or "").strip()}
+"""
+
+    with open(approval_path, "w", encoding="utf-8") as f:
+        f.write(body)
+
+    # 代录后立即回读校验，确保写出的签署件自身能通过门禁
+    check_gate(
+        gate=norm_gate,
+        root_dir=root_dir,
+        artifact_override=artifact_path,
+        approval_override=approval_path,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Universal Gate Guard for rigorous research report pipeline")
     parser.add_argument("--gate", type=str, help="Gate name: G0, G1, G2, G3, change-<id>")
@@ -747,6 +953,16 @@ def main():
     parser.add_argument("--compute-brief-content-hash", type=str, help="Compute brief.md content hash (UTF-8 LF, field blanked)")
     parser.add_argument("--verify-brief", type=str, help="Verify brief.md against constitutional & section standards")
     parser.add_argument("--check-provenance", type=str, help="Verify machine-readable adversarial review provenance JSON")
+
+    # 会话授权代录
+    parser.add_argument("--record-approval", action="store_true", help="Record a session-transcribed gate approval on behalf of an authorized human")
+    parser.add_argument("--authorized-by", type=str, help="Human identity who gave the authorization")
+    parser.add_argument("--authorization-quote", type=str, help="Verbatim human authorizing words")
+    parser.add_argument("--authorization-turn", type=str, help="Session/turn reference of the authorization")
+    parser.add_argument("--signature", type=str, help="Confirming words; defaults to the authorization quote")
+    parser.add_argument("--decision", type=str, default="APPROVED", help="Decision to record (APPROVED / REJECTED / CHANGES_REQUESTED)")
+    parser.add_argument("--comments", type=str, help="Free-text comments to record")
+    parser.add_argument("--recorded-by", type=str, default="agent:zcode", help="Identity of the agent performing the transcription")
 
     args = parser.parse_args()
 
@@ -779,6 +995,26 @@ def main():
     if not args.gate:
         parser.print_help(sys.stderr)
         sys.exit(1)
+
+    if args.record_approval:
+        if not (args.authorized_by and args.authorization_quote and args.authorization_turn):
+            sys.stderr.write(
+                "--record-approval requires --authorized-by, --authorization-quote and --authorization-turn\n"
+            )
+            sys.exit(1)
+        record_session_approval(
+            gate=args.gate,
+            root_dir=args.root,
+            authorized_by=args.authorized_by,
+            authorization_quote=args.authorization_quote,
+            authorization_turn=args.authorization_turn,
+            artifact_override=args.artifact,
+            signature=args.signature,
+            decision=args.decision,
+            comments=args.comments,
+            recorded_by=args.recorded_by,
+        )
+        return
 
     check_gate(
         gate=args.gate,

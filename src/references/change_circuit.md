@@ -139,11 +139,13 @@
    - 申请件：`gates/change-<id>-request.md`
    - 签署件：`gates/change-<id>-approval.md`
 2. **Agent 权限边界**：
-   - Agent 必须 [SHALL] 仅被允许生成 `request.md` 申请件。
-   - 严禁 [SHALL NOT] Agent 自动生成、伪造或篡改 `approval.md` 的签名内容。
+   - Agent 必须 [SHALL] 被允许生成 `request.md` 申请件。
+   - 严禁 [SHALL NOT] Agent 自行作出放行裁决，严禁伪造或篡改人类授权原话。
+   - 会话授权代录：人类在会话中明确授权放行本次变更后，Agent 可依授权原话代写 `approval.md`，须留下 `authorization_quote`、`authorization_turn`、`authorization_at`、`authorized_by`、`recorded_by` 五个溯源字段。
 3. **防伪硬核校验**：
    - `scripts/gate_guard.py` 对签署件执行强防伪校验。
-   - 若签署件中的 `signed_by` 字段为 `agent:*` 格式或包含 Agent 标识，必须 [SHALL] 判定为非法自签，立即阻断（退出码 1）。
+   - 若签署件中的 `signed_by` 或 `authorized_by` 字段为 `agent:*` 格式或包含 Agent 标识，必须 [SHALL] 判定为非法自签，立即阻断（退出码 1）。
+   - 若代录模式下任一授权溯源字段缺失，或 `authorized_by` 与 `signed_by` 不一致，必须 [SHALL] 判定为 `AUTHORIZATION_TRACE_INCOMPLETE` 并阻断。
    - 若签署件记录的 `artifact_sha256` 与当前 `change-table.md` 实际哈希不一致，必须 [SHALL] 判定为篡改并阻断。
 4. **门禁先行契约**：
    - 编排脚本 `scripts/change_dispatch.py --apply` 执行前，必须 [SHALL] 内部调用：
